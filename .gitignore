@@ -6,3 +6,4 @@ credentials.json
 *.pdf
 *.texpadtmp
 *generator.py
+*.swp
