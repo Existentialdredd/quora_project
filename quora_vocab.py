@@ -9,15 +9,21 @@ class CommentVocab(object):
     def __init__(self,comments,size=None):
         self.UNK_TOKEN = '<unk>'
         self.VOCAB_SIZE = size
+        self._comment_lengths_(comments)
+        self._vocab_counts_(comments)
 
+
+    def _comment_lengths_(self,comments):
+        """
+        PURPOSE:
+        """
         comment_lengths = [Counter([len(comment[1]) for comment in comments if comment[2] == i]) 
                                 for i in range(2)]
         comment_lengths = [zip(comment_lengths[0].keys(),comment_lengths[0].values()),
                            zip(comment_lengths[1].keys(),comment_lengths[1].values())] 
-
         self.sorted_comment_lengths = [sorted(comment_lengths[0],key = lambda x: x[0]),
                                        sorted(comment_lengths[1],key = lambda x: x[0])]
-        self._vocab_counts_(comments)
+
 
     def _vocab_counts_(self,comments):
         self.unigram_counts = [Counter(),Counter()]
