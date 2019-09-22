@@ -33,3 +33,12 @@ def canon_token_sentence(sentence,**kw):
     canon_sentence = canonicalize_sentence(sentence)
     canon_token = canonicalize_words(canon_sentence.split(' '))
     return canon_token
+
+def flatten_sort_listx2_tuple(tpl_list,sort_index=0,ascending='TRUE'):
+    tpl_list = [ item for sublist in tpl_list for item in sublist] 
+    if ascending: 
+        tpl_list = sorted(tpl_list,key = lambda x: -x[sort_index])            
+    else: 
+        tpl_list = sorted(tpl_list,key = lambda x: x[sort_index])            
+    return tpl_list
+
