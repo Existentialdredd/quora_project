@@ -2,6 +2,7 @@ from __future__ import print_function
 from __future__ import division
 from tqdm import tqdm as ProgressBar
 import numpy as np
+import utilities as ut
 from collections import defaultdict, Counter
 
 class CommentVocab(object):
@@ -52,8 +53,55 @@ class CommentVocab(object):
         # For convenience
         self.wordset = set(self.word_to_id.keys())
 
+    def _unigram_frequencies_(self):
+        """
+        PURPOSE:
+        """
+        #Unigram frequencies and differences
+        unigram_totals = [ sum(list(counts.values())) for counts in self.unigram_counts]
+        unigram_freq = [sorted([ (unigram,count/unigram_totals[i]) 
+                        for unigram,count in self.unigram_counts[i].items()]
+                               ,key=lambda x: -x[1]) 
+                        for i in [0,1]]
+        unigram_freq_alt = [ dict(lst) for lst in unigram_freq]
+        unigram_diff = [ (word,unigram_freq_alt[0].get(word,int(0))-unigram_freq_alt[1].get(word,int(0)))
+                                for word in set(list(unigram_freq_alt[0].keys())
+                                              + list(unigram_freq_alt[1].keys()))]
+         
+        unigram_diff = sorted(unigram_diff,key=lambda x: -x[1])                                
 
-    def word_frequency_graphs(self,min_rank=0,max_rank=25): 
+        return unigram_freq, unigram_diff                                
+
+    def _bigram_frequencies_(self):                                
+        """
+        PURPOSE: 
+        """
+        #Bigram frequencies and differences
+           
+        neg_bigram_counts = [[('{}_{}'.format(word1,word2),count) for word2,count in words.items()]
+                               for word1,words in list(self.bigram_counts[0].items())]
+        neg_bigram_counts = dict(ut.flatten_sort_listx2_tuple(neg_bigram_counts,1))
+
+        pos_bigram_counts = [[('{}_{}'.format(word1,word2),count) for word2,count in words.items()]
+                               for word1,words in list(self.bigram_counts[1].items())]
+        pos_bigram_counts = dict(ut.flatten_sort_listx2_tuple(pos_bigram_counts,1))
+        bigram_counts = [neg_bigram_counts,pos_bigram_counts]
+        bigram_totals = [sum(neg_bigram_counts.values()),sum(pos_bigram_counts.values())]
+        bigram_vocab = set(list(neg_bigram_counts.keys()) + list(pos_bigram_counts.keys()))
+
+        bigram_freq = [sorted([(key,val/bigram_totals[i]) 
+            for key,val in bigram_counts[i].items()],key=lambda x: -x[1]) 
+                        for i in [0,1]]
+        bigram_freq_alt = [dict(lst) for lst in bigram_freq]
+        bigram_diff = [(bigram,bigram_freq_alt[0].get(bigram,int(0))-bigram_freq_alt[1].get(bigram,int(0))) 
+                        for bigram in bigram_vocab]
+           
+        bigram_diff = sorted(bigram_diff,key = lambda x: -x[1])
+
+        return bigram_freq, bigram_diff
+
+
+    def word_frequency_graphs(self,unigram=True,min_rank=0,max_rank=25): 
         """
         PURPOSE:
         """
@@ -61,10 +109,16 @@ class CommentVocab(object):
         from bokeh.io import show
         from bokeh.models import HoverTool, ColumnDataSource
 
-        neg_vocab_words, neg_vocab_counts = zip(*self.top_counts[0][min_rank:max_rank])
-        pos_vocab_words, pos_vocab_counts = zip(*self.top_counts[1][min_rank:max_rank])
-        neg_vocab_freq = [ val/sum(neg_vocab_counts) for val in neg_vocab_counts]
-        pos_vocab_freq = [ val/sum(pos_vocab_counts) for val in pos_vocab_counts]
+        if unigram: 
+            gram_freq,_ = self._unigram_frequencies_()
+            title = 'Unigram'
+        else:
+            gram_freq,_ = self._bigram_frequencies_()
+            title = 'Bigram'
+            
+        neg_vocab_words,neg_vocab_freq= zip(*gram_freq[0][min_rank:max_rank])
+        pos_vocab_words,pos_vocab_freq= zip(*gram_freq[1][min_rank:max_rank])
+
         source = ColumnDataSource(data=dict(neg_vocab_words=neg_vocab_words,
                                             neg_vocab_freq=neg_vocab_freq,
                                             pos_vocab_words=pos_vocab_words,
@@ -74,9 +128,9 @@ class CommentVocab(object):
         hover_2 = HoverTool(tooltips=[('Word', "$pos_vocab_words"),('Freq','$pos_vocab_freq')]) 
         
         p1 = figure(x_range=neg_vocab_words,plot_height=300,plot_width=750,
-                    tools=[hover_1],title="Appropriate Question Word Frequency")
+                    tools=[hover_1],title="Appropriate Question {} Frequency".format(title))
         p2 = figure(x_range=pos_vocab_words,plot_height=300,plot_width=750,
-                    tools=[hover_2],title="Inappropriate Question Word Frequency")
+                    tools=[hover_2],title="Inappropriate Question {} Frequency".format(title))
 
         p1.vbar(x='neg_vocab_words',top='neg_vocab_freq',width=0.9,source=source)
         p2.vbar(x='pos_vocab_words',top='pos_vocab_freq',width=0.9,source=source)
@@ -90,29 +144,26 @@ class CommentVocab(object):
         show(p1)
         show(p2)
 
-    def word_count_difference_graph(self,num=10):
+    def word_count_difference_graph(self,unigram=True,num=10):
         """
         PURPOSE:
         """
         from bokeh.plotting import figure
         from bokeh.io import show
 
-        self.word_frequency_diff = []
-
-        for _,word in self.id_to_word.items():
-            neg_freq = self.unigram_counts[0].get(word,0)/sum(self.unigram_counts[0].values())
-            pos_freq = self.unigram_counts[1].get(word,0)/sum(self.unigram_counts[1].values())
-            if word not in ['<s>','</s>']:
-                self.word_frequency_diff.append((word,neg_freq-pos_freq))
-
-        self.word_frequency_diff = sorted(self.word_frequency_diff,key = lambda x: -x[1]) 
-        plotted_word_frequency_diff = self.word_frequency_diff[:num] + self.word_frequency_diff[-num:]
-        words, difference = zip(*plotted_word_frequency_diff)
+        if unigram: 
+            _,gram_diff = self._unigram_frequencies_()
+            title='Unigram'
+        else:
+            _,gram_diff = self._bigram_frequencies_()
+            title='Bigram'
+        
+        words,diff = zip(*(gram_diff[:num] + gram_diff[-num:]))
 
         p = figure(x_range = words,plot_height=300,plot_width=750,
-                   title='Word Frequency Difference: (Appropriate Frequency - Inappropriate Frequency)')
+                   title='{} Frequency Difference: (Appropriate Frequency - Inappropriate Frequency)'.format(title))
 
-        p.vbar(x=words,top=difference,width=0.9)
+        p.vbar(x=words,top=diff,width=0.9)
         p.xgrid.grid_line_color = None
         p.xaxis.major_label_orientation = 1 
 
@@ -120,7 +171,7 @@ class CommentVocab(object):
         
     def comment_length_graph(self):
         """ 
-        PURPOSE:
+        PURPOSE: 
         """
         from bokeh.plotting import figure
         from bokeh.io import show
