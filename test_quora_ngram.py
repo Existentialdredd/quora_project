@@ -42,7 +42,6 @@ class TestQuoraNgram2(unittest.TestCase):
     def setUp(self):
         comments = [['xxxxx',['where','are','you'],1],['yyyyy',['who','are','you'],0]]
         self.vocab = NgramModel(comments)
-        
 
     def tearDown(self):
         self.vocab = None
@@ -81,6 +80,18 @@ class TestQuoraNgram2(unittest.TestCase):
         self.assertDictEqual(self.vocab.gram_frequency[0],trigram_freqs_target[1])
         self.assertDictEqual(self.vocab.gram_frequency[1],trigram_freqs_target[0])
 
-if __name__ == '__main__': 
+class TestQuoraNgram2(unittest.TestCase): 
+
+    def setUp(self):
+        comments = [['xxxxx',['where','where','where','are','are','you','you','now'],1],
+                    ['yyyyy',['who','who','who','are','are','you','you','you'],0]]
+        self.vocab = NgramModel(comments)
+
+    def tearDown(self):
+        self.vocab = None
+
+    def test_tg_freq(self):
+    
+if __name__ == '__main__':
     unittest.main()
 
