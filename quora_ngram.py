@@ -1,9 +1,9 @@
 from __future__ import print_function
 from __future__ import division
 from tqdm import tqdm as ProgressBar
+from collections import defaultdict, Counter
 import numpy as np
 import utilities as ut
-from collections import defaultdict, Counter
 
 
 class NgramModel(object):
@@ -29,10 +29,11 @@ class NgramModel(object):
                               defaultdict(lambda: Counter())]
         self.trigram_counts = [defaultdict(lambda:  Counter()),
                                defaultdict(lambda:  Counter())]
+        self.label_counts = [0,0]
 
         # Token Processing
         for _,comment,label in ProgressBar(comments, desc='Processing Comments'):
-            comment = comment
+            self.label_counts[label] += 1
             prev_unigram = None
             prev_bigram = None
             for word in comment:
@@ -45,22 +46,24 @@ class NgramModel(object):
                     prev_bigram = '_'.join([prev_unigram,word])
                 prev_unigram = word
 
-            # Uni/Bi/Trigram Totals
-            self.unigram_totals = [sum(self.unigram_counts[i].values()) for i in [0,1]]
-            self.bigram_totals = [sum([sum(endgram_counts.values()) 
-                                        for endgram_counts in self.bigram_counts[i].values()])
-                                    for i in [0,1]]
-            self.trigram_totals = [sum([sum(endgram_counts.values()) 
-                                         for endgram_counts in self.trigram_counts[i].values()]) 
-                                    for i in [0,1]]
+        self.label_probs = [ self.label_counts[i]/sum(self.label_counts) for i in [0,1]]
 
-            # Converting counter to regular dictionaries 
-#            self.bigram_counts[0].default_factory = None  
-#            self.bigram_counts[1].default_factory = None 
-#            self.trigram_counts[0].default_factory = None  
-#            self.trigram_counts[1].default_factory = None 
+        # Uni/Bi/Trigram Totals
+        self.unigram_totals = [sum(self.unigram_counts[i].values()) for i in [0,1]]
+        self.bigram_totals = [sum([sum(endgram_counts.values()) 
+                                    for endgram_counts in self.bigram_counts[i].values()])
+                                for i in [0,1]]
+        self.trigram_totals = [sum([sum(endgram_counts.values()) 
+                                     for endgram_counts in self.trigram_counts[i].values()]) 
+                                for i in [0,1]]
 
-    def _additive_smoothing_(self,gram_length=1,param=1,counts=False):
+        # Converting counter to regular dictionaries 
+#       self.bigram_counts[0].default_factory = None  
+#       self.bigram_counts[1].default_factory = None 
+#       self.trigram_counts[0].default_factory = None  
+#       self.trigram_counts[1].default_factory = None 
+
+    def _additive_smoothing_(self,gram_length=1,param=1,counts=False,logs=True):
         """
         PURPOSE: Calculate the smoothed frequencies of the requested uni/bi/trigrams
 
@@ -68,12 +71,13 @@ class NgramModel(object):
         gram_length         (int) gram frequencies requested (1) unigram, (2) bigram, (3) trigram
         param               (float) smoothing parameter
         counts              (bool) indicator for whether raw counts instead of freq are returned
+        logs                (bool) indicator for whether log frequencies are returned
 
         RETURNS:
         gram_frequency      (list(dict)) dictionarys of gram counts/frequencies by class
         """
 
-        def smooth_freq(gram_count,gram_total_count,vocab_count,counts,param=param):
+        def smooth_freq(gram_count,gram_total_count,vocab_count,counts,param,logs):
             """
             PURPOSE: Calculate log probability or gram counts
 
@@ -81,29 +85,34 @@ class NgramModel(object):
             gram_count          (int) number of gram appearances
             gram_total_count    (int) total number of appearances of grams of a given length
             vocab_count         (int) total number of unique grams in training set
+            logs                (bool) indicator for whether log frequencies are returned
             counts              (bool) indicator for whether raw counts instead of freqs are returned
 
-            RETURNS: 
+            RETURNS:
             count_or_freq       (int_or_float) either a raw count (int) or a log frequency (float)
             """
-            if counts: 
+            if counts:
                 count_or_freq = float(gram_count)
-            else: 
+
+            if logs:
                 count_or_freq = np.log((param + gram_count)/(param*vocab_count + gram_total_count))
+            else:
+                count_or_freq = (param + gram_count)/(param*vocab_count + gram_total_count)
 
             return count_or_freq
 
         # Unigram Frequencies
-        if gram_length == 1: 
+        if gram_length == 1:
             vocab_size = [len(self.unigram_counts[i].keys()) for i in [0,1]]
             gram_frequency = [ { gram:smooth_freq(gram_count,self.unigram_totals[i],
-                                                       vocab_size[i],counts,param) 
+                                                       vocab_size[i],counts,param,logs)
                                         for gram, gram_count in self.unigram_counts[i].items()}
                                      for i in [0,1]]
             # Adding smoothed values for words not in training vocab
             for i in [0,1]:
                 gram_frequency[i].update({'<unk>': smooth_freq(1,self.unigram_totals[i],
-                                                                    vocab_size[i],counts,param)}) 
+                                                                 vocab_size[i],
+                                                                 counts,param,logs)})
 
         # Bigram Frequencies
         if gram_length == 2: 
@@ -111,18 +120,18 @@ class NgramModel(object):
                                 for endgram_counts in self.bigram_counts[i].values()])
                             for i in [0,1]]
             gram_frequency = [ [ {'_'.join([gram1,gram2]):smooth_freq(gram_count,
-                                                                           self.bigram_totals[i],
-                                                                           vocab_size[i],counts,param) 
-                                        for gram2,gram_count in self.bigram_counts[i].get(gram1).items()} 
+                                                                      self.bigram_totals[i],
+                                                                      vocab_size[i],counts,param,logs)
+                                        for gram2,gram_count in self.bigram_counts[i].get(gram1).items()}
                                       for gram1 in self.bigram_counts[i].keys() ]
                                     for i in [0,1] ]
             # Flattening list of dicts into one dict
-            gram_frequency = [ { k:v for d in gram_frequency[i] for k,v in d.items()} 
-                                     for i in [0,1]] 
+            gram_frequency = [ { k:v for d in gram_frequency[i] for k,v in d.items()}
+                                     for i in [0,1]]
             # Adding smoothed values for words not in training vocab
             for i in [0,1]:
                 gram_frequency[i].update({'<unk>': smooth_freq(1,self.bigram_totals[i],
-                                                                    vocab_size[i],counts,param)}) 
+                                                                vocab_size[i],counts,param,logs)}) 
 
         # Trigram Frequencies
         if gram_length == 3: 
@@ -130,9 +139,9 @@ class NgramModel(object):
                                 for endgram_counts in self.trigram_counts[i].values()])
                             for i in [0,1]]
             gram_frequency = [ [ {'_'.join([gram1,gram2]):smooth_freq(gram_count,
-                                                                           self.trigram_totals[i],
-                                                                           vocab_size[i],counts,param) 
-                                        for gram2,gram_count in self.trigram_counts[i].get(gram1).items()} 
+                                                                      self.trigram_totals[i],
+                                                                      vocab_size[i],counts,param,logs)
+                                        for gram2,gram_count in self.trigram_counts[i].get(gram1).items()}
                                       for gram1 in self.trigram_counts[i].keys() ]
                                     for i in [0,1] ]
             # Flattening a list of dicts into a one dict
@@ -141,35 +150,45 @@ class NgramModel(object):
             # Adding smoothed values for words not in training vocab
             for i in [0,1]:
                 gram_frequency[i].update({'<unk>': smooth_freq(1,self.trigram_totals[i],
-                                                                    vocab_size[i],counts,param)}) 
+                                                                    vocab_size[i],counts,param,logs)}) 
 
         return gram_frequency
 
-    def good_turing(self,gram_length=1,param=0.5):
+    def good_turing(self,gram_length=1,param=0.5,logs=True):
         """
-        PURPOSE:
+        PURPOSE: Calculate good-turing smoothing ngram frequencies
+
+        ARGS:
+        gram_length         (int) model gram length
+        param               (float)
+        logs                (bool) indicator for whether log frequencies are returned
+
+        RETURNS:
+        gram_frequency      (list(dict)) gram frequencies by class
         """
-        gram_count_by_occur = [Counter(),Counter()]
+        gram_count_by_occur_count = [Counter(),Counter()]
         gram_smoothing_ratios  = [defaultdict(int),defaultdict(int)]
         gram_frequency = [defaultdict(float),defaultdict(float)]
         gram_counts =  self._additive_smoothing_(gram_length,counts=True)
+
+        if logs:
+            freq = lambda x: np.log(x)
+        else:
+            freq = lambda x: x
 
         for i in [0,1]:
             total = sum(gram_counts[i].values())
 
             for _,val in gram_counts[i].items():
-                gram_count_by_occur[i][val] += 1
+                gram_count_by_occur_count[i][val] += 1
 
-            max_count = np.max(list(gram_count_by_occur[i].keys()))+1
-            gram_count_by_occur[i].update({max_count:gram_count_by_occur[i].get(max_count-1)})
-
-            for val in gram_count_by_occur[i].keys():
-                gram_smoothing_ratios[i][val] = (gram_count_by_occur[i].get(val+1,
-                                                             param*gram_count_by_occur[i].get(val))
-                                                               /gram_count_by_occur[i].get(val))
+            for val in gram_count_by_occur_count[i].keys():
+                gram_smoothing_ratios[i][val] = (gram_count_by_occur_count[i].get(val+1,
+                                                     param*gram_count_by_occur_count[i].get(val))
+                                                        /gram_count_by_occur_count[i].get(val))
 
             for key,val in gram_counts[i].items():
-                gram_frequency[i][key] = np.log((val+1)*gram_smoothing_ratios[i].get(val)/total)
+                gram_frequency[i][key] = freq((val+1)*gram_smoothing_ratios[i].get(val)/total)
 
         gram_frequency[0].default_factory = None
         gram_frequency[1].default_factory = None
@@ -177,9 +196,69 @@ class NgramModel(object):
         return gram_frequency
 
 
-    def train_classifier(self,gram_length=1,smoothing='additive',**kwargs):
+    def _gram_freq_(self,gram,gram_models):
         """
         PURPOSE:
+        """
+        num_tokens = len(gram.split('_'))
+        probs = [ gram_models[num_tokens-1][i].get(gram,0) for i in [0,1]]
+        return probs
+
+    def _smoothed_gram_freqs_(self,gram,gram_models,convex_param=0.5):
+        """
+        PURPOSE:
+        """
+        num_tokens = len(gram.split('_'))
+        lower_probs = [1/len(self.unigram_counts[i]) for i in [0,1]]
+
+        for i in range(1,num_tokens+1):
+            lower_grams = [ '_'.join(gram.split('_')[j:j+i]) for j in range(num_tokens-i+1)]
+            higher_probs = [1,1]
+            for lower_gram in lower_grams:
+                lower_gram_probs = self._gram_freq_(lower_gram,gram_models)
+                higher_probs = [higher_probs[i]*lower_gram_probs[i] for i  in [0,1]]
+            lower_probs = [ (1-convex_param)*lower_probs[i]+convex_param*higher_probs[i] for i in [0,1]]
+
+        return np.log(lower_probs)
+
+
+    def jelinek_mercer(self,gram_length=1,cnvx_param=0.5,scnd_smoother='additive',**kwargs):
+        """
+        PURPOSE:
+        """
+        gram_models = []
+        unigram_vocab_counts =[len(self.unigram_counts[i]) for i in [0,1]]
+
+        if scnd_smoother ==  'additive':
+            param = kwargs.get('param',1)
+            for gram_model in range(1,gram_length+1):
+                gram_models.append(self._additive_smoothing_(gram_model,param,counts=False,logs=False))
+
+        elif scnd_smoother == 'good_turing':
+            param = kwargs.get('param',0.5)
+            for gram_model in range(1,gram_length+1):
+                gram_models.append(self.good_turing(gram_model,param,logs=False))
+
+        vocab = set(gram_models[-1][0].keys()).union(gram_models[-1][1].keys())
+
+        gram_frequency = [{},{}]
+        for gram in vocab:
+            prob0,prob1 = self._smoothed_gram_freqs_(gram,gram_models,cnvx_param)
+            gram_frequency[0].update({gram:prob0})
+            gram_frequency[1].update({gram:prob1})
+
+        return gram_frequency
+
+    def train_classifier(self,gram_length=1,smoothing='additive',**kwargs):
+        """
+        PURPOSE: Train a Naive Bayes Classifier with frequencies generated by requested
+                 smoothing technique.
+
+        ARGS:
+        gram_length         (int) model gram length
+        smoothing           (str) requested smoothing technique
+
+        KWARGS: parameters necessary for requested smoothing function
         """
         self.gram_length = gram_length
 
@@ -187,7 +266,12 @@ class NgramModel(object):
             param = kwargs.get('param',1)
             self.gram_frequency = self._additive_smoothing_(gram_length,param)
         elif smoothing == 'good-turing':
-            self.gram_frequency = self.good_turing(gram_length)
+            param = kwargs.get('param',0.5)
+            self.gram_frequency = self.good_turing(gram_length,param)
+        elif smoothing == 'jelinek-mercer':
+            cnvx_param = kwargs.get('param',0.5)
+            scnd_smoother = kwargs.get('scnd_smoother')
+            self.gram_frequency = self.jelinek_mercer(gram_length,cnvx_param,scnd_smoother,kwargs)
         else:
             print('Smoothing technique {} not recognized'.format(smoothing))
 
@@ -211,11 +295,45 @@ class NgramModel(object):
         if self.gram_frequency is None:
             print('Error Model Not Trained')
 
+        unk_prob = [0,0]
+
         if self.gram_length == 1:
-            unk_prob = [self.gram_frequency[i].get('<unk>') for i in [0,1]]
             log_probs = [ sum([ self.gram_frequency[i].get(gram,unk_prob[i])
                                 for gram in comment])
                           for i in [0,1]]
+        elif self.gram_length == 2:
+            comment_grams = ['_'.join(comment[i:i+2]) for i in range(len(comment)-1)]
+            log_probs = [ sum([ self.gram_frequency[i].get(gram,unk_prob[i])
+                                for gram in comment_grams])
+                          for i in [0,1]]
+        elif self.gram_length == 3:
+            comment_grams = ['_'.join(comment[i:i+3]) for i in range(len(comment)-2)]
+            log_probs = [ sum([ self.gram_frequency[i].get(gram,unk_prob[i])
+                                for gram in comment_grams])
+                         for i in [0,1]]
 
-        predicted = int(log_probs[0] < log_probs[1])
+        predicted = int(log_probs[0] + np.log(self.label_probs[0]) < \
+                        log_probs[1] + np.log(self.label_probs[1]))
+
         return predicted, log_probs
+
+
+    def evaluate_classifier(self,comments,labels):
+        """
+        PURPOSE: Evaluate the currently trained model
+
+        ARGS:
+        comments        (list(list)) list of tokenized comments
+        labels          (list)
+        """
+        from sklearn.metrics import classification_report, confusion_matrix
+
+        predicted_labels = []
+
+        for comment in comments:
+            predicted_label, predicted_log_prob = self.predict(comment)
+            predicted_labels.append(predicted_label)
+        print('------Confusion Matrix------\n {}'.format(confusion_matrix(labels,predicted_labels)))
+        print('------Report------\n{}'.format(classification_report(labels,predicted_labels)))
+
+
