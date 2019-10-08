@@ -26,7 +26,9 @@ def canonicalize_sentence(sentence, **kw):
     sentence = re.sub("(?<=\S)[\.\/\?\(\)\[](?=\s)","",sentence)
     sentence = re.sub("(?<=\s)[\.\/\?\(\)\[](?=\S)","",sentence)
     sentence = re.sub("(?<=\s)[\.\/\?\(\)\[](?=\s)","",sentence)
-    sentence = re.sub("[\.\/\?\(\)\[](?=$)","",sentence)
+    sentence = re.sub("['\.\/\?\(\)\[](?=$)","",sentence)
+    sentence = re.sub("[^a-zA-Z\d\s]","",sentence)
+    sentence = re.sub("\s{2,}"," ",sentence)
     return sentence
 
 def canon_token_sentence(sentence,**kw):
