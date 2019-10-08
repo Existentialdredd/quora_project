@@ -93,11 +93,11 @@ class NgramModel(object):
             """
             if counts:
                 count_or_freq = float(gram_count)
-
-            if logs:
-                count_or_freq = np.log((param + gram_count)/(param*vocab_count + gram_total_count))
             else:
-                count_or_freq = (param + gram_count)/(param*vocab_count + gram_total_count)
+                if logs:
+                    count_or_freq = np.log((param + gram_count)/(param*vocab_count + gram_total_count))
+                else:
+                    count_or_freq = (param + gram_count)/(param*vocab_count + gram_total_count)
 
             return count_or_freq
 
@@ -189,7 +189,6 @@ class NgramModel(object):
 
             for key,val in gram_counts[i].items():
                 gram_frequency[i][key] = freq((val+1)*gram_smoothing_ratios[i].get(val)/total)
-
         gram_frequency[0].default_factory = None
         gram_frequency[1].default_factory = None
 
@@ -198,33 +197,92 @@ class NgramModel(object):
 
     def _gram_freq_(self,gram,gram_models):
         """
-        PURPOSE:
+        PURPOSE: Look up the frequecy of a uni/bi/trigram in the gram_models
+
+        ARGS:
+        gram        (str) gram whose frequency is generated
+        gram_models (list(dict)) uni/bi/trigram models source
+
+        RETURNS:
+        probs       (list(float)) gram_probability by label
         """
         num_tokens = len(gram.split('_'))
         probs = [ gram_models[num_tokens-1][i].get(gram,0) for i in [0,1]]
         return probs
 
-    def _smoothed_gram_freqs_(self,gram,gram_models,convex_param=0.5):
+
+    def _smoothed_gram_freqs_(self,gram,gram_models,cnvx_param=0.5,logs=True):
         """
-        PURPOSE:
+        PURPOSE: Implementing the smoothed convex combination of higher and lower gram
+                 probabilities, consistent with the jelinek-mercer smoothing
+
+        ARGS:
+        gram            (str) an "_" seperated uni/bi/trigram
+        gram_models     (list(dict)) frequency distributions for all uni/bi/trigrams
+        cnvxs_param     (float) convex combination parameter
+        logs            (bool) indicator whether the final probability is given in logs or levels
+
+        RETURNS:
+        gram_freq       (list(float)) list of log or level gram frequencies by class
         """
         num_tokens = len(gram.split('_'))
-        lower_probs = [1/len(self.unigram_counts[i]) for i in [0,1]]
+        class_gram_freq = [1/sum(self.unigram_counts[i].values()) for i in [0,1]]
+        unigrams = gram.split('_')
 
-        for i in range(1,num_tokens+1):
-            lower_grams = [ '_'.join(gram.split('_')[j:j+i]) for j in range(num_tokens-i+1)]
-            higher_probs = [1,1]
-            for lower_gram in lower_grams:
-                lower_gram_probs = self._gram_freq_(lower_gram,gram_models)
-                higher_probs = [higher_probs[i]*lower_gram_probs[i] for i  in [0,1]]
-            lower_probs = [ (1-convex_param)*lower_probs[i]+convex_param*higher_probs[i] for i in [0,1]]
+        convex_comb = lambda param,arg1,arg2: param*arg1 + (1-param)*arg2
 
-        return np.log(lower_probs)
+        if num_tokens >=1:
+            unigram_freq = [ [ convex_comb(cnvx_param,
+                                           self._gram_freq_(gram,gram_models)[i],
+                                           class_gram_freq[i])
+                                for gram in unigrams]
+                              for i in [0,1]]
+            gram_freq = [val for sublist in unigram_freq for val in sublist]
+
+        if num_tokens >=2:
+            bigrams = ['_'.join(unigrams[i:i+2]) for i in range(num_tokens-1)]
+
+            unigram_freq_products = [ [ np.prod(unigram_freq[j][i:i+2])
+                                        for i in range(num_tokens-1)]
+                                      for j in [0,1]]
+            bigram_freq = [ [ convex_comb(cnvx_param,
+                                           self._gram_freq_(bigrams[j],gram_models)[i],
+                                           unigram_freq_products[i][j])
+                                for j,_ in enumerate(bigrams)]
+                              for i in [0,1]]
+            gram_freq = [val for sublist in bigram_freq for val in sublist]
+
+        if num_tokens ==3:
+            trigram = gram
+
+            bigram_freq_products = [ np.prod(bigram_freq[j]) for j in [0,1]]
+
+            trigram_freq = [ convex_comb(cnvx_param,
+                                         self._gram_freq_(trigram,gram_models)[i],
+                                         bigram_freq_products[i])
+                             for i in [0,1]]
+            gram_freq = trigram_freq
+
+        if logs:
+            return [ np.log(val) for val in gram_freq]
+        else:
+            return gram_freq
 
 
     def jelinek_mercer(self,gram_length=1,cnvx_param=0.5,scnd_smoother='additive',**kwargs):
         """
-        PURPOSE:
+        PURPOSE: Generate a gram frequency models using the convex combinations of uni/bi/trigram
+                 frequency models generated in accordance with the secondary smoother. 
+
+        ARGS:
+        gram_length         (int) gram lenght of final model
+        cnvx_param          (float) parameter used to generate convex combinations
+        scnd_smoother       (str) secondary smoothing technique used to generate uni/bi/trigram models
+
+        KWARGS: Parameters needed for secondary smoothers
+
+        RETURNS:
+        gram_frequency      (list(dict)) smoothed gram model by label
         """
         gram_models = []
         unigram_vocab_counts =[len(self.unigram_counts[i]) for i in [0,1]]
@@ -242,12 +300,13 @@ class NgramModel(object):
         vocab = set(gram_models[-1][0].keys()).union(gram_models[-1][1].keys())
 
         gram_frequency = [{},{}]
-        for gram in vocab:
+        for gram in ProgressBar(vocab, desc='Processing Gram'):
             prob0,prob1 = self._smoothed_gram_freqs_(gram,gram_models,cnvx_param)
             gram_frequency[0].update({gram:prob0})
             gram_frequency[1].update({gram:prob1})
 
         return gram_frequency
+
 
     def train_classifier(self,gram_length=1,smoothing='additive',**kwargs):
         """
@@ -259,19 +318,23 @@ class NgramModel(object):
         smoothing           (str) requested smoothing technique
 
         KWARGS: parameters necessary for requested smoothing function
+        scnd_smoother       (str) name of secondary smoother used in jelinek_mercer
+        smth_param          (float) parameter passed to the primary or secondary smoothing function
+        cnvx_param          (float) convex combination parameter used in jelinek_mercer
         """
         self.gram_length = gram_length
 
         if smoothing == 'additive':
-            param = kwargs.get('param',1)
+            param = kwargs.get('smth_param',1)
             self.gram_frequency = self._additive_smoothing_(gram_length,param)
         elif smoothing == 'good-turing':
-            param = kwargs.get('param',0.5)
+            param = kwargs.get('smth_param',0.5)
             self.gram_frequency = self.good_turing(gram_length,param)
         elif smoothing == 'jelinek-mercer':
-            cnvx_param = kwargs.get('param',0.5)
-            scnd_smoother = kwargs.get('scnd_smoother')
-            self.gram_frequency = self.jelinek_mercer(gram_length,cnvx_param,scnd_smoother,kwargs)
+            cnvx_param = kwargs.get('cnvx_param',0.5)
+            smth_param = kwargs.get('smth_param',1)
+            scnd_smoother = kwargs.get('scnd_smoother','additive')
+            self.gram_frequency = self.jelinek_mercer(gram_length,cnvx_param,scnd_smoother,param=smth_param)
         else:
             print('Smoothing technique {} not recognized'.format(smoothing))
 
@@ -291,12 +354,10 @@ class NgramModel(object):
         predicted           (int) predicted class
         log_probabilities   (list(float)) calculated log likelihood
         """
-
         if self.gram_frequency is None:
             print('Error Model Not Trained')
 
         unk_prob = [0,0]
-
         if self.gram_length == 1:
             log_probs = [ sum([ self.gram_frequency[i].get(gram,unk_prob[i])
                                 for gram in comment])
@@ -335,5 +396,3 @@ class NgramModel(object):
             predicted_labels.append(predicted_label)
         print('------Confusion Matrix------\n {}'.format(confusion_matrix(labels,predicted_labels)))
         print('------Report------\n{}'.format(classification_report(labels,predicted_labels)))
-
-
