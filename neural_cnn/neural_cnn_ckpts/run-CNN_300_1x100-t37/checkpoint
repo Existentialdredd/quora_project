@@ -1,0 +1,3 @@
+model_checkpoint_path: "/Users/ericpenner/Desktop/projects/quora/neural_cnn/neural_cnn_ckpts/run-CNN_300_1x100-t37/final.ckpt"
+all_model_checkpoint_paths: "/Users/ericpenner/Desktop/projects/quora/neural_cnn/neural_cnn_ckpts/run-CNN_300_1x100-t37/temp.ckpt"
+all_model_checkpoint_paths: "/Users/ericpenner/Desktop/projects/quora/neural_cnn/neural_cnn_ckpts/run-CNN_300_1x100-t37/final.ckpt"

@@ -57,11 +57,6 @@ class NgramModel(object):
                                      for endgram_counts in self.trigram_counts[i].values()]) 
                                 for i in [0,1]]
 
-        # Converting counter to regular dictionaries 
-#       self.bigram_counts[0].default_factory = None  
-#       self.bigram_counts[1].default_factory = None 
-#       self.trigram_counts[0].default_factory = None  
-#       self.trigram_counts[1].default_factory = None 
 
     def _additive_smoothing_(self,gram_length=1,param=1,counts=False,logs=True):
         """
