@@ -7,3 +7,5 @@ credentials.json
 *.texpadtmp
 *generator.py
 *.swp
+quora_full_embeds.txt
+*swo
