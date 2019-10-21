@@ -1,0 +1,3 @@
+model_checkpoint_path: "/Users/ericpenner/Desktop/projects/quora/neural_bow_ckpts/run-FF_100_2x100-t51/final.ckpt"
+all_model_checkpoint_paths: "/Users/ericpenner/Desktop/projects/quora/neural_bow_ckpts/run-FF_100_2x100-t51/temp.ckpt"
+all_model_checkpoint_paths: "/Users/ericpenner/Desktop/projects/quora/neural_bow_ckpts/run-FF_100_2x100-t51/final.ckpt"
