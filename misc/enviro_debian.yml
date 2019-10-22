@@ -1,4 +1,4 @@
-name: quora_test
+name: quora_work
 channels:
   - conda-forge
   - defaults

@@ -25,3 +25,12 @@ ${HOME}/anaconda3/bin/jupyter notebook --generate-config
 popd
 mkdir ${HOME}/.jupyter
 cp -v $(dirname $0)/support/jupyter_notebook_config.py ${HOME}/.jupyter/jupyter_notebook_config.py
+
+cd ${HOME}/quora/misc/
+conda env create -f enviro_debian.yml
+
+cd ${HOME}/quora/eda
+gdown https://drive.google.com/uc?id=1DRNWMId4T-0qP6EGBmMqbPWErUpuSS-n
+cd ${HOME}/quora/embeddings
+gdown https://drive.google.com/uc?id=1yCmhJJq0uJhDgjlW4PzfXlXhbs4DpIIK
+cd ${HOME}
