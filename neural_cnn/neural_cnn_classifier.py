@@ -323,11 +323,11 @@ class Neural_CNN(object):
     def _summary_writer_(self):
         import json
         summary_dict = self.__dict__
-        summary_dict.pop('graph',None)
         with open(self.summary_file,'w+') as file:
             file.write('Summary for Neural CNN Run:\n')
             for key,val in summary_dict.items():
-                file.write('{}: {}\n'.format(key,val))
+                if key != 'graph':
+                    file.write('{}: {}\n'.format(key,val))
 
 
     def train_graph(self,train_dict):
