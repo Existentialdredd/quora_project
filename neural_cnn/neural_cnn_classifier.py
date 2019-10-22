@@ -50,6 +50,7 @@ class Neural_CNN(object):
         self.N_OUTPUTS = setup.get('n_outputs',2)
         self.root_log_dir = setup.get('root_log_dir',''.join([os.getcwd(),'/neural_cnn_logs']))
         self.check_pt_dir = setup.get('checkpoint_dir',''.join([os.getcwd(),'/neural_cnn_ckpts']))
+        self.summary_dir = setup.get('summary_dir',''.join([os.getcwd(),'/neural_cnn_run_summary']))
         self.graph = None
 
 
@@ -293,6 +294,8 @@ class Neural_CNN(object):
         self.log_dir = ''.join([self.root_log_dir,'/run-',file_ext,'/'])
         self.temp_ckpt = ''.join([self.check_pt_dir,'/run-',file_ext,'/','temp.ckpt'])
         self.final_ckpt = ''.join([self.check_pt_dir,'/run-',file_ext,'/','final.ckpt'])
+        self.summary_file = ''.join([self.summary_dir,'/run-',file_ext,'.txt'])
+
 
 
     def write_graph(self):
@@ -315,6 +318,16 @@ class Neural_CNN(object):
         """
         random.shuffle(list_in)
         return [list_in[i::n] for i in range(n)]
+
+
+    def _summary_writer_(self):
+        import json
+        summary_dict = self.__dict__
+        summary_dict.pop('graph',None)
+        with open(self.summary_file,'w+') as file:
+            file.write('Summary for Neural CNN Run:\n')
+            for key,val in summary_dict.items():
+                file.write('{}: {}\n'.format(key,val))
 
 
     def train_graph(self,train_dict):
@@ -342,6 +355,7 @@ class Neural_CNN(object):
         n_train_ex = len(sequences_train)
         n_batches = n_train_ex // batch_size
         done,epoch,acc_reg = 0,0,[0,1]
+        self._summary_writer_()
 
         with self.graph.as_default():
             correct_,accuracy_ = tf.get_collection('Eval_ops')
@@ -375,7 +389,7 @@ class Neural_CNN(object):
                         step = epoch*n_batches + iteration
                         file_writer.add_summary(summary_str,step)
                 #Early Stopping Regularization
-                if epoch % 2 == 0:
+                if epoch % 1 == 0:
                     # Evaluating the Accuracy of Current Model
                     acc_ckpt = accuracy_.eval(feed_dict={training_:False,
                                                          W_embed_:embeddings,

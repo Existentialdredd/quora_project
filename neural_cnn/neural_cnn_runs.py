@@ -13,7 +13,7 @@ import embedding_utilities as embd_util
 import utilities as ut
 import neural_cnn_classifier as ncnn
 
-DATA_PATH = '~/quora/eda/'
+DATA_PATH = '../eda/'
 DATA_FILE = '{}{}'.format(DATA_PATH,'train.csv')
 data = pd.read_csv(DATA_FILE)
 
@@ -67,9 +67,9 @@ ncnn_classifier = ncnn.Neural_CNN({'n_tokens':len(embeddings)-1,
 ncnn_classifier.build_graph()
 
 
-train_dict = {'embeddings':embeddings,
-              'sequences_train':sequences_train,'labels_train': labels_train,
-              'sequences_valid':sequences_valid,'labels_valid': labels_valid,'batch_size':100}
-
-ncnn_classifier.train_graph(train_dict)
-ncnn_classifier.predict_and_report(sequences_valid,labels_valid,embeddings)
+#train_dict = {'embeddings':embeddings,
+#              'sequences_train':sequences_train,'labels_train': labels_train,
+#              'sequences_valid':sequences_valid,'labels_valid': labels_valid,'batch_size':100}
+#
+#ncnn_classifier.train_graph(train_dict)
+#ncnn_classifier.predict_and_report(sequences_valid,labels_valid,embeddings)

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+python neural_cnn_runs.py
+echo I AM DONE
+sudo shutdown now
