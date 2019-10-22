@@ -7,5 +7,6 @@ credentials.json
 *.texpadtmp
 *generator.py
 *.swp
+*.swo
+train.csv
 quora_full_embeds.txt
-*swo
