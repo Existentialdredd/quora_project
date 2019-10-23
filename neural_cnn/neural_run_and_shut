@@ -1,12 +1,22 @@
 #!/bin/bash
 
+echo Enter Yahoo Password:
+read -s PASS
+
+echo Starting Python Script
 python neural_cnn_runs.py
 
 if [[ $? -eq 0 ]]; then
 	echo I AM DONE, SHUTTING DOWN
+	sendemail -l email.log  -f "kaftra@yahoo.com" \
+		-u "Instance-2 CNN Run Complete" \
+		-t "epenner@berkeley.edu" \
+		-s "smtp.mail.yahoo.com:587" \
+		-o tls=yes \
+		-xu "kaftra" \
+		-xp "$PASS" \
+		-o message-file="./neural_cnn_run_summary/most_recent_summary.txt"
 	sudo shutdown now
 elif [[ $? -ne 0 ]]; then
 	echo CNN RUN ENDED IN ERROR, WILL NOT SHUT DOWN
 fi
-
-
