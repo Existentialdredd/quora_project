@@ -7,16 +7,18 @@ echo Starting Python Script
 python neural_cnn_runs.py
 
 if [[ $? -eq 0 ]]; then
+	git add .
+	git commit -m "run completed"
 	echo I AM DONE, SHUTTING DOWN
 	sendemail -l email.log  -f "kaftra@yahoo.com" \
-		-u "Instance-x CNN Run Complete" \
+		-u "Instance-1 CNN Run Complete" \
 		-t "epenner@berkeley.edu" \
 		-s "smtp.mail.yahoo.com:587" \
 		-o tls=yes \
 		-xu "kaftra" \
 		-xp "$PASS" \
 		-o message-file="./neural_cnn_run_summary/most_recent_summary.txt"
-#	sudo shutdown now
+	sudo shutdown now
 elif [[ $? -ne 0 ]]; then
 	echo CNN RUN ENDED IN ERROR, WILL NOT SHUT DOWN
 fi

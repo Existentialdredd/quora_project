@@ -406,7 +406,6 @@ class Neural_CNN(object):
                 print('Register:{} Epoch:{:2d} Train Accuracy:{:6.4f} Validation Accuracy: {:6.4f}'.format(acc_reg, epoch, acc_train, acc_test))
                 #Final Model Save
                 save_path = saver_.save(sess,self.final_ckpt)
-                break
 
 
     def predict_and_report(self,sequences,labels,W_embed,report=True,file=False):
