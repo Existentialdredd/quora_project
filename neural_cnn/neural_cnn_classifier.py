@@ -295,6 +295,7 @@ class Neural_CNN(object):
         self.temp_ckpt = ''.join([self.check_pt_dir,'/run-',file_ext,'/','temp.ckpt'])
         self.final_ckpt = ''.join([self.check_pt_dir,'/run-',file_ext,'/','final.ckpt'])
         self.summary_file = ''.join([self.summary_dir,'/run-',file_ext,'.txt'])
+        self.most_recent_summary_file = ''.join([self.summary_dir,'/most_recent_summary.txt'])
 
 
 
@@ -318,17 +319,6 @@ class Neural_CNN(object):
         """
         random.shuffle(list_in)
         return [list_in[i::n] for i in range(n)]
-
-
-    def _summary_writer_(self):
-        import json
-        summary_dict = self.__dict__
-        with open(self.summary_file,'w+') as file:
-            file.write('Summary for Neural CNN Run:\n')
-            for key,val in summary_dict.items():
-                if key != 'graph':
-                    file.write('{}: {}\n'.format(key,val))
-
 
     def train_graph(self,train_dict):
         """
@@ -355,7 +345,6 @@ class Neural_CNN(object):
         n_train_ex = len(sequences_train)
         n_batches = n_train_ex // batch_size
         done,epoch,acc_reg = 0,0,[0,1]
-        self._summary_writer_()
 
         with self.graph.as_default():
             correct_,accuracy_ = tf.get_collection('Eval_ops')
@@ -417,9 +406,10 @@ class Neural_CNN(object):
                 print('Register:{} Epoch:{:2d} Train Accuracy:{:6.4f} Validation Accuracy: {:6.4f}'.format(acc_reg, epoch, acc_train, acc_test))
                 #Final Model Save
                 save_path = saver_.save(sess,self.final_ckpt)
+                break
 
 
-    def predict_and_report(self,sequences,labels,W_embed,report=True):
+    def predict_and_report(self,sequences,labels,W_embed,report=True,file=False):
         """
         PURPOSE: Prediction using best model on provided examples and generating
                  report if indicated and labels are provided.
@@ -431,6 +421,7 @@ class Neural_CNN(object):
         report      (bool) indicator for whether a report is generated
         """
         from sklearn.metrics import confusion_matrix,classification_report
+        import json
 
         with tf.Session(graph=self.graph) as sess:
             _,saver_ = tf.get_collection('Init_Save_ops')
@@ -442,11 +433,12 @@ class Neural_CNN(object):
                                                         training_:False})
             self.class_prediction = np.argmax(self.logits_prediction,axis=1)
 
+            confusion_mat = confusion_matrix(labels,self.class_prediction)
+            true_neg = confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[1,0])
+            false_neg = confusion_mat[0,1]/(confusion_mat[0,1]+confusion_mat[1,1])
+            ratio = true_neg/false_neg
+
             if report:
-                confusion_mat = confusion_matrix(labels,self.class_prediction)
-                true_neg = confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[1,0])
-                false_neg = confusion_mat[0,1]/(confusion_mat[0,1]+confusion_mat[1,1])
-                ratio = true_neg/false_neg
                 print('-----------{}-----------'.format('Confusion Matrix'))
                 print(confusion_mat,'\n')
                 print('-----------{}-----------'.format('Classification Report'))
@@ -454,3 +446,17 @@ class Neural_CNN(object):
                 print('True Negative:', true_neg)
                 print('False Negative:', false_neg)
                 print('Upper Constraint:', ratio)
+            if file:
+                summary_dict = self.__dict__.copy()
+                class_report_dict = classification_report(labels,self.class_prediction,output_dict=True)
+                summary_dict.update(class_report_dict)
+                summary_dict.update({'true_negative':true_neg,
+                              'false_negative':false_neg,
+                              'upper_constraint':ratio})
+                summary_dict.pop('graph',None)
+                summary_dict.pop('logits_prediction',None)
+                summary_dict.pop('class_prediction',None)
+                with open(self.summary_file,'w') as file:
+                    json.dump(summary_dict,file,indent=2)
+                with open(self.most_recent_summary_file,'w') as file:
+                    json.dump(summary_dict,file,indent=2)

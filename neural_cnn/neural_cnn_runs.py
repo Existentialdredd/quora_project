@@ -72,4 +72,4 @@ train_dict = {'embeddings':embeddings,'kernel_sizes_by_lyr':[[1,2,3,4]],
               'sequences_valid':sequences_valid,'labels_valid': labels_valid,'batch_size':100}
 
 ncnn_classifier.train_graph(train_dict)
-ncnn_classifier.predict_and_report(sequences_valid,labels_valid,embeddings)
+ncnn_classifier.predict_and_report(sequences_valid,labels_valid,embeddings,file=True)
