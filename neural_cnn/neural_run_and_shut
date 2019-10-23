@@ -4,7 +4,7 @@ python neural_cnn_runs.py
 
 if [[ $? -eq 0 ]]; then
 	echo I AM DONE, SHUTTING DOWN
-#	sudo shutdown now
+	sudo shutdown now
 elif [[ $? -ne 0 ]]; then
 	echo CNN RUN ENDED IN ERROR, WILL NOT SHUT DOWN
 fi
