@@ -63,10 +63,12 @@ sequences_valid = valid_id_sequences
 
 ncnn_classifier = ncnn.Neural_CNN({'n_tokens':len(embeddings)-1,
                                    'embedding_dimension':EMBD_DIM,
-                                   'max_sequence_length':100})
+                                   'max_sequence_length':100,
+                                   'n_filters_per_kernel_by_lyr':[50],
+                                   'kernel_sizes_by_lyr':[[3]]})
 ncnn_classifier.build_graph()
 
-train_dict = {'embeddings':embeddings,'n_filters_per_kernel_by_lyr':[50],'kernel_sizes_by_lyr':[[3]],
+train_dict = {'embeddings':embeddings,
               'sequences_train':sequences_train,'labels_train': labels_train,
               'sequences_valid':sequences_valid,'labels_valid': labels_valid,'batch_size':100}
 
