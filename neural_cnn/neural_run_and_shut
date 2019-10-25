@@ -4,6 +4,7 @@ echo Enter Yahoo Password:
 read -s PASS
 
 echo Starting Python Script
+source activate quora_test
 python neural_cnn_runs.py
 
 if [[ $? -eq 0 ]]; then
