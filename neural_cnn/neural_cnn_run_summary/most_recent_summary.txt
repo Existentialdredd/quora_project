@@ -8,7 +8,7 @@
   ],
   "kernel_sizes_by_lyr": [
     [
-      3
+      9
     ]
   ],
   "n_hidden": [
@@ -28,31 +28,31 @@
   "summary_file": "/home/eric_pnr/quora/neural_cnn/neural_cnn_run_summary/run-CNN_300_1x100-t40.txt",
   "most_recent_summary_file": "/home/eric_pnr/quora/neural_cnn/neural_cnn_run_summary/most_recent_summary.txt",
   "0": {
-    "precision": 0.90891175826582,
-    "recall": 0.8302,
-    "f1-score": 0.8677746419985367,
+    "precision": 0.8859088974031503,
+    "recall": 0.8324,
+    "f1-score": 0.8583213033615178,
     "support": 5000
   },
   "1": {
-    "precision": 0.8437327443401436,
-    "recall": 0.9168,
-    "f1-score": 0.8787501198121346,
+    "precision": 0.8419464353074312,
+    "recall": 0.8928,
+    "f1-score": 0.8666278392545136,
     "support": 5000
   },
-  "accuracy": 0.8735,
+  "accuracy": 0.8626,
   "macro avg": {
-    "precision": 0.8763222513029818,
-    "recall": 0.8734999999999999,
-    "f1-score": 0.8732623809053357,
+    "precision": 0.8639276663552907,
+    "recall": 0.8626,
+    "f1-score": 0.8624745713080157,
     "support": 10000
   },
   "weighted avg": {
-    "precision": 0.8763222513029818,
-    "recall": 0.8735,
-    "f1-score": 0.8732623809053357,
+    "precision": 0.8639276663552908,
+    "recall": 0.8626,
+    "f1-score": 0.8624745713080157,
     "support": 10000
   },
-  "true_negative": 0.90891175826582,
-  "false_negative": 0.15626725565985644,
-  "upper_constraint": 5.816392912436043
+  "true_negative": 0.8859088974031503,
+  "false_negative": 0.15805356469256884,
+  "upper_constraint": 5.6051181074361605
 }
