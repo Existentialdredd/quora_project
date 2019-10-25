@@ -9,7 +9,7 @@ python neural_cnn_runs.py
 if [[ $? -eq 0 ]]; then
 	echo I AM DONE, SHUTTING DOWN
 	sendemail -l email.log  -f "kaftra@yahoo.com" \
-		-u "Instance-x CNN Run Complete" \
+		-u "Instance-3 CNN Run Complete" \
 		-t "epenner@berkeley.edu" \
 		-s "smtp.mail.yahoo.com:587" \
 		-o tls=yes \

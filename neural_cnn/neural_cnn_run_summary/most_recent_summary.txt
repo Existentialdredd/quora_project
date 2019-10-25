@@ -1,0 +1,60 @@
+{
+  "LRN_RATE": 0.01,
+  "MAX_SEQ_LEN": 100,
+  "EMBD_DIM": 300,
+  "BATCH_NORM": true,
+  "n_filters_per_kernel_by_lyr": [
+    10
+  ],
+  "kernel_sizes_by_lyr": [
+    [
+      1,
+      2,
+      3
+    ]
+  ],
+  "n_hidden": [
+    100
+  ],
+  "padding": "SAME",
+  "hidden_activation": "elu",
+  "DROP_RATE": 0.5,
+  "N_TOKN": 153374,
+  "N_OUTPUTS": 2,
+  "root_log_dir": "/home/eric_pnr/quora/neural_cnn/neural_cnn_logs",
+  "check_pt_dir": "/home/eric_pnr/quora/neural_cnn/neural_cnn_ckpts",
+  "summary_dir": "/home/eric_pnr/quora/neural_cnn/neural_cnn_run_summary",
+  "log_dir": "/home/eric_pnr/quora/neural_cnn/neural_cnn_logs/run-CNN_300_1x100-t39/",
+  "temp_ckpt": "/home/eric_pnr/quora/neural_cnn/neural_cnn_ckpts/run-CNN_300_1x100-t39/temp.ckpt",
+  "final_ckpt": "/home/eric_pnr/quora/neural_cnn/neural_cnn_ckpts/run-CNN_300_1x100-t39/final.ckpt",
+  "summary_file": "/home/eric_pnr/quora/neural_cnn/neural_cnn_run_summary/run-CNN_300_1x100-t39.txt",
+  "most_recent_summary_file": "/home/eric_pnr/quora/neural_cnn/neural_cnn_run_summary/most_recent_summary.txt",
+  "0": {
+    "precision": 0.9100679973678438,
+    "recall": 0.8298,
+    "f1-score": 0.8680824354011927,
+    "support": 5000
+  },
+  "1": {
+    "precision": 0.8435949274030509,
+    "recall": 0.918,
+    "f1-score": 0.8792261277655397,
+    "support": 5000
+  },
+  "accuracy": 0.8739,
+  "macro avg": {
+    "precision": 0.8768314623854474,
+    "recall": 0.8739,
+    "f1-score": 0.8736542815833661,
+    "support": 10000
+  },
+  "weighted avg": {
+    "precision": 0.8768314623854472,
+    "recall": 0.8739,
+    "f1-score": 0.8736542815833662,
+    "support": 10000
+  },
+  "true_negative": 0.9100679973678438,
+  "false_negative": 0.15640507259694908,
+  "upper_constraint": 5.818660368599811
+}
