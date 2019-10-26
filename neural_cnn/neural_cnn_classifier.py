@@ -295,6 +295,7 @@ class Neural_CNN(object):
         self.temp_ckpt = ''.join([self.check_pt_dir,'/run-',file_ext,'/','temp.ckpt'])
         self.final_ckpt = ''.join([self.check_pt_dir,'/run-',file_ext,'/','final.ckpt'])
         self.summary_file = ''.join([self.summary_dir,'/run-',file_ext,'.txt'])
+        self.most_recent_summary_file = ''.join([self.summary_dir,'/most_recent_summary.txt'])
 
 
 
@@ -405,6 +406,7 @@ class Neural_CNN(object):
                 print('Register:{} Epoch:{:2d} Train Accuracy:{:6.4f} Validation Accuracy: {:6.4f}'.format(acc_reg, epoch, acc_train, acc_test))
                 #Final Model Save
                 save_path = saver_.save(sess,self.final_ckpt)
+                break
 
 
     def predict_and_report(self,sequences,labels,W_embed,report=True,file=False):
@@ -455,4 +457,6 @@ class Neural_CNN(object):
                 summary_dict.pop('logits_prediction',None)
                 summary_dict.pop('class_prediction',None)
                 with open(self.summary_file,'w') as file:
+                    json.dump(summary_dict,file,indent=2)
+                with open(self.most_recent_summary_file,'w') as file:
                     json.dump(summary_dict,file,indent=2)
