@@ -370,7 +370,7 @@ class Neural_CNN(object):
                                                         Y_:labels_batch})
                     #Intermediate Summary Writing
                     if iteration % 10 == 0:
-                        summary_str = acc_summary.eval(feed_dict={training_:True,
+                        summary_str = acc_summary.eval(feed_dict={training_:False,
                                                                   W_embed_:embeddings,
                                                                   sequences_:sequences_valid,
                                                                   Y_:labels_valid})
