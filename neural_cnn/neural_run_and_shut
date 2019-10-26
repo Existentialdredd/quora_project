@@ -1,12 +1,15 @@
 #!/bin/bash
 
-echo Enter Yahoo Password:
-read -s PASS
+read -ps "Yahoo Password:" PASS 
+read -p "Commit Message:" COMMIT
 
 echo Starting Python Script
+source activate quora_work
 python neural_cnn_runs.py
 
 if [[ $? -eq 0 ]]; then
+	git add .
+	git commit -m "$COMMIT"
 	echo I AM DONE, SHUTTING DOWN
 	sendemail -l email.log  -f "kaftra@yahoo.com" \
 		-u "Instance-3 CNN Run Complete" \
