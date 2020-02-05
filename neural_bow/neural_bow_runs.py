@@ -15,7 +15,7 @@ import neural_bow_classifier as nbow
 DATA_PATH = '~/google_drive/data/quora/'
 DATA_FILE = '{}{}'.format(DATA_PATH,'train.csv')
 data_full = pd.read_csv(DATA_FILE)
-data = data_full
+data = data_full.iloc[:6000,:]
 data_pos_tokenized = [[vec[0],ut.canon_token_sentence(vec[1]),vec[2]]
                       for vec in data.to_numpy() if vec[2] == 1]
 data_neg_tokenized = [[vec[0],ut.canon_token_sentence(vec[1]),vec[2]]
@@ -42,7 +42,7 @@ sequences_valid = svd_embd.sequences_to_ids_w_pad([val[1] for val in valid_data]
 labels_valid = [val[2] for val in valid_data]
 train_dict = {'embeddings':svd_embd.trained_embeddings,
               'sequences_train':svd_embd.train_sequences_w_pad,'labels_train': labels_train,
-              'sequences_valid':sequences_valid,'labels_valid': labels_valid}
+              'sequences_valid':sequences_valid,'labels_valid': labels_valid,'n_stop':1}
 
 nbow_classifier.train_graph(train_dict)
-nbow_classifier.predict_and_report(sequences_valid,labels_valid,svd_embd.trained_embeddings)
+nbow_classifier.predict_and_report(sequences_valid,labels_valid,svd_embd.trained_embeddings,file=True)
