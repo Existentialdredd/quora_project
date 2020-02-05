@@ -44,6 +44,7 @@ class Neural_BOW(object):
         self.N_OUTPUTS = setup.get('n_outputs',2)
         self.root_log_dir = setup.get('root_log_dir',''.join([os.getcwd(),'/neural_bow_logs']))
         self.check_pt_dir = setup.get('checkpoint_dir',''.join([os.getcwd(),'/neural_bow_ckpts']))
+        self.summary_dir = setup.get('summary_dir',''.join([os.getcwd(),'/neural_bow_run_summary']))
         self.graph = None
 
 
@@ -284,6 +285,7 @@ class Neural_BOW(object):
         self.log_dir = ''.join([self.root_log_dir,'/run-',file_ext,'/'])
         self.temp_ckpt = ''.join([self.check_pt_dir,'/run-',file_ext,'/','temp.ckpt'])
         self.final_ckpt = ''.join([self.check_pt_dir,'/run-',file_ext,'/','final.ckpt'])
+        self.summary_file = ''.join([self.summary_dir,'/run-',file_ext,'.txt'])
 
 
     def write_graph(self):
@@ -403,7 +405,7 @@ class Neural_BOW(object):
                 save_path = saver_.save(sess,self.final_ckpt)
 
 
-    def predict_and_report(self,sequences,labels,W_embed,report=True):
+    def predict_and_report(self,sequences,labels,W_embed,report=True,file=False):
         """
         PURPOSE: Prediction using best model on provided examples and generating
                  report if indicated and labels are provided.
@@ -413,8 +415,10 @@ class Neural_BOW(object):
         labels      (list) order class labels
         W_embed     (list(list)) trained word embedding Matrix
         report      (bool) indicator for whether a report is generated
+        file        (bool) indicator whether a summary file is generated
         """
         from sklearn.metrics import confusion_matrix,classification_report
+        import json
 
         with tf.Session(graph=self.graph) as sess:
             _,saver_ = tf.get_collection('Init_Save_ops')
@@ -428,13 +432,16 @@ class Neural_BOW(object):
 
             if report:
                 confusion_mat = confusion_matrix(labels,self.class_prediction)
-                true_neg = confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[1,0])
-                false_neg = confusion_mat[0,1]/(confusion_mat[0,1]+confusion_mat[1,1])
-                ratio = true_neg/false_neg
                 print('-----------{}-----------'.format('Confusion Matrix'))
                 print(confusion_mat,'\n')
                 print('-----------{}-----------'.format('Classification Report'))
                 print(classification_report(labels,self.class_prediction))
-                print('True Negative:', true_neg,'\n')
-                print('False Negative:', false_neg,'\n')
-                print('Upper Constraint:', ratio,'\n')
+            if file:
+                summary_dict = self.__dict__.copy()
+                class_report_dict = classification_report(labels,self.class_prediction,output_dict=True)
+                summary_dict.update(class_report_dict)
+                summary_dict.pop('graph',None)
+                summary_dict.pop('logits_prediction',None)
+                summary_dict.pop('class_prediction',None)
+                with open(self.summary_file,'w') as file:
+                    json.dump(summary_dict,file,indent=2)
