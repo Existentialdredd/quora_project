@@ -6,6 +6,16 @@ import utilities as ut
 from collections import defaultdict, Counter
 
 class CommentVocab(object):
+    """
+    PURPOSE: Generate a vocabulary, uni/bi/tri gram counts, and plotting tools for 
+             a quora comments
+
+    ARGS:
+        comments        (tuple) of the following
+            comments[0]     (str)       unique comment id
+            comments[1]     (list(str)) comments as list of tokens
+            comments[2]     (int)       class
+    """
 
     def __init__(self,comments,size=None):
         self.UNK_TOKEN = '<unk>'
@@ -43,7 +53,7 @@ class CommentVocab(object):
                     self.bigram_counts[label][prev_unigram][word] += 1
                     if prev_bigram is not None:
                         self.trigram_counts[label][prev_bigram][word] += 1
-                if prev_unigram is not None: 
+                if prev_unigram is not None:
                     prev_bigram = '_'.join([prev_unigram,word])
                 prev_unigram = word
 
@@ -51,11 +61,11 @@ class CommentVocab(object):
 
         #Uni/Bi/Trigram Totals
         self.unigram_totals = [sum(self.unigram_counts[i].values()) for i in [0,1]]
-        self.bigram_totals = [sum([sum(endgram_counts.values()) 
+        self.bigram_totals = [sum([sum(endgram_counts.values())
                                     for endgram_counts in self.bigram_counts[i].values()])
                                 for i in [0,1]]
-        self.trigram_totals = [sum([sum(endgram_counts.values()) 
-                                     for endgram_counts in self.trigram_counts[i].values()]) 
+        self.trigram_totals = [sum([sum(endgram_counts.values())
+                                     for endgram_counts in self.trigram_counts[i].values()])
                                 for i in [0,1]]
 
 
@@ -150,9 +160,16 @@ class CommentVocab(object):
 
         return gram_frequency
 
+
     def _comment_lengths_(self,comments):
         """
-        PURPOSE:
+        PURPOSE: Calculate the lenght of the comments given
+
+        ARGS:
+        comments        (tuple) of the following
+            comments[0]     (str)       unique comment id
+            comments[1]     (list(str)) comments as list of tokens
+            comments[2]     (int)       class
         """
         comment_lengths = [Counter([len(comment[1]) for comment in comments if comment[2] == i])
                                 for i in range(2)]
@@ -202,9 +219,9 @@ class CommentVocab(object):
         hover_2 = HoverTool(tooltips=[('Word', "$pos_vocab_words"),('Freq','$pos_vocab_freq')])
 
         p1 = figure(x_range=neg_vocab_words,plot_height=300,plot_width=750,
-                    tools=[hover_1],title="Appropriate Question {} Frequency".format(title))
+                    tools=[hover_1],title="Appropriate Question {} Counts".format(title))
         p2 = figure(x_range=pos_vocab_words,plot_height=300,plot_width=750,
-                    tools=[hover_2],title="Inappropriate Question {} Frequency".format(title))
+                    tools=[hover_2],title="Inappropriate Question {} Counts".format(title))
 
         p1.vbar(x='neg_vocab_words',top='neg_vocab_freq',width=0.9,source=source)
         p2.vbar(x='pos_vocab_words',top='pos_vocab_freq',width=0.9,source=source)
@@ -221,17 +238,24 @@ class CommentVocab(object):
 
     def _gram_differences_(self,gram_length=1):
         """
-        PURPOSE:
+        PURPOSE: Calculate the differences in gram_frequencies between classes
+
+        ARGS:
+            gram_length     (int) 1=unigram,2=bigram,3=trigram
+
+        RETURNS:
+            gram_freq_diffs (list(tup)) sorted list of (gram, frequency difference)
         """
         gram_freq = self._additive_smoothing_(gram_length, param=0,counts=False,logs=False)
         vocab = set(gram_freq[0].keys()).union(gram_freq[1].keys())
 
-        diffs = []
+        gram_freq_diffs = []
         for gram in vocab:
             gram_freq_diff = gram_freq[0].get(gram,0) - gram_freq[1].get(gram,0)
-            diffs.append((gram,gram_freq_diff))
+            gram_freq_diffs.append((gram,gram_freq_diff))
 
-        return sorted(diffs,key=lambda x: -x[1])
+        gram_frequency_diffs = sorted(gram_freq_diffs,key=lambda x: -x[1])
+        return gram_frequency_diffs
 
 
     def word_count_difference_graph(self,gram_length=1,num=10):
@@ -290,7 +314,7 @@ class CommentVocab(object):
 
         neg_len_freq_plotting = [ neg_len_counts[neg_len.index(i)]/sum(neg_len_counts)
                                     if i in neg_len else 0
-                                    for i in range(max_length+1)] 
+                                    for i in range(max_length+1)]
         pos_len_freq_plotting = [ pos_len_counts[pos_len.index(i)]/sum(pos_len_counts)
                                     if i in pos_len else 0
                                     for i in range(max_length+1)]
