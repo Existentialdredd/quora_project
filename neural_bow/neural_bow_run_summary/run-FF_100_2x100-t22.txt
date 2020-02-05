@@ -9,7 +9,7 @@
   ],
   "hidden_activation": "elu",
   "DROP_RATE": 0.5,
-  "N_TOKN": 9619,
+  "N_TOKN": 153374,
   "N_OUTPUTS": 2,
   "root_log_dir": "/Users/ericpenner/Desktop/projects/quora/neural_bow/neural_bow_logs",
   "check_pt_dir": "/Users/ericpenner/Desktop/projects/quora/neural_bow/neural_bow_ckpts",
@@ -19,28 +19,28 @@
   "final_ckpt": "/Users/ericpenner/Desktop/projects/quora/neural_bow/neural_bow_ckpts/run-FF_100_2x100-t22/final.ckpt",
   "summary_file": "/Users/ericpenner/Desktop/projects/quora/neural_bow/neural_bow_run_summary/run-FF_100_2x100-t22.txt",
   "0": {
-    "precision": 0.7189072609633357,
-    "recall": 1.0,
-    "f1-score": 0.8364700961940611,
-    "support": 1000
+    "precision": 0.9460062472110665,
+    "recall": 0.424,
+    "f1-score": 0.5855544814252175,
+    "support": 5000
   },
   "1": {
-    "precision": 0.0,
-    "recall": 0.0,
-    "f1-score": 0.0,
-    "support": 391
+    "precision": 0.6288181466683851,
+    "recall": 0.9758,
+    "f1-score": 0.7647934791127832,
+    "support": 5000
   },
-  "accuracy": 0.7189072609633357,
+  "accuracy": 0.6999,
   "macro avg": {
-    "precision": 0.35945363048166784,
-    "recall": 0.5,
-    "f1-score": 0.41823504809703055,
-    "support": 1391
+    "precision": 0.7874121969397259,
+    "recall": 0.6999,
+    "f1-score": 0.6751739802690003,
+    "support": 10000
   },
   "weighted avg": {
-    "precision": 0.5168276498658056,
-    "recall": 0.7189072609633357,
-    "f1-score": 0.6013444257326104,
-    "support": 1391
+    "precision": 0.7874121969397258,
+    "recall": 0.6999,
+    "f1-score": 0.6751739802690003,
+    "support": 10000
   }
 }

@@ -417,6 +417,7 @@ class Neural_CNN(object):
         labels      (list) order class labels
         W_embed     (list(list)) trained word embedding Matrix
         report      (bool) indicator for whether a report is generated
+        file        (bool) indicator whether a summary file is generated
         """
         from sklearn.metrics import confusion_matrix,classification_report
         import json
