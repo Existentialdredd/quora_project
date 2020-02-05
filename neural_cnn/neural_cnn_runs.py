@@ -66,7 +66,6 @@ ncnn_classifier = ncnn.Neural_CNN({'n_tokens':len(embeddings)-1,
                                    'max_sequence_length':100})
 ncnn_classifier.build_graph()
 
-
 train_dict = {'embeddings':embeddings,
               'sequences_train':sequences_train,'labels_train': labels_train,
               'sequences_valid':sequences_valid,'labels_valid': labels_valid,'batch_size':100}
