@@ -371,7 +371,7 @@ class Neural_CNN(object):
                                                         Y_:labels_batch})
                     #Intermediate Summary Writing
                     if iteration % 10 == 0:
-                        summary_str = acc_summary.eval(feed_dict={training_:True,
+                        summary_str = acc_summary.eval(feed_dict={training_:False,
                                                                   W_embed_:embeddings,
                                                                   sequences_:sequences_valid,
                                                                   Y_:labels_valid})
@@ -447,7 +447,9 @@ class Neural_CNN(object):
                 print('Upper Constraint:', ratio)
             if file:
                 summary_dict = self.__dict__.copy()
-                class_report_dict = classification_report(labels,self.class_prediction,output_dict=True)
+                class_report_dict = classification_report(labels,
+                                                          self.class_prediction,
+                                                          output_dict=True)
                 summary_dict.update(class_report_dict)
                 summary_dict.update({'true_negative':true_neg,
                               'false_negative':false_neg,

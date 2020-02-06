@@ -63,6 +63,8 @@ sequences_valid = valid_id_sequences
 
 ncnn_classifier = ncnn.Neural_CNN({'n_tokens':len(embeddings)-1,
                                    'embedding_dimension':EMBD_DIM,
+                                   'n_filters_per_kernel_by_lyr':[50],
+                                   'kernel_sizes_by_lyr':[[7]],
                                    'max_sequence_length':100})
 ncnn_classifier.build_graph()
 

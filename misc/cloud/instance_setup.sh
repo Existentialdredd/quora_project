@@ -11,6 +11,9 @@ sudo apt-get upgrade
 sudo apt-get install bzip2
 sudo apt-get install tmux
 sudo apt-get install htop
+sudo apt-get install sendemail
+sudo apt-get install libnet-ssleay-perl
+sudo apt-get install libio-socket-ssl-perl
 
 ANACONDA_INSTALLER="Anaconda3-5.2.0-Linux-x86_64.sh"
 wget "https://repo.continuum.io/archive/$ANACONDA_INSTALLER"
