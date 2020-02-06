@@ -30,7 +30,8 @@ MAX_SEQ_LEN = 100
 EMBD_DIM = 100
 
 # Data Extraction and Splitting
-train_data = data_pos_tokenized[NVALID:NTRAIN+NVALID] + data_neg_tokenized[NVALID:NTRAIN+NVALID]
+train_data = (data_pos_tokenized[NVALID:NTRAIN+NVALID] +
+              data_neg_tokenized[NVALID:NTRAIN+NVALID])
 shuffle(train_data)
 valid_data = data_pos_tokenized[:NVALID] + data_neg_tokenized[:NVALID]
 shuffle(valid_data)

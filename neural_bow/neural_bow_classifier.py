@@ -42,9 +42,12 @@ class Neural_BOW(object):
         self.DROP_RATE = setup.get('dropout_rate',0.5)
         self.N_TOKN = setup.get('n_tokens',100)
         self.N_OUTPUTS = setup.get('n_outputs',2)
-        self.root_log_dir = setup.get('root_log_dir',''.join([os.getcwd(),'/neural_bow_logs']))
-        self.check_pt_dir = setup.get('checkpoint_dir',''.join([os.getcwd(),'/neural_bow_ckpts']))
-        self.summary_dir = setup.get('summary_dir',''.join([os.getcwd(),'/neural_bow_run_summary']))
+        self.root_log_dir = setup.get('root_log_dir',''.join([os.getcwd(),
+                                                              '/neural_bow_logs']))
+        self.check_pt_dir = setup.get('checkpoint_dir',''.join([os.getcwd(),
+                                                                '/neural_bow_ckpts']))
+        self.summary_dir = setup.get('summary_dir',''.join([os.getcwd(),
+                                                           '/neural_bow_run_summary']))
         self.graph = None
 
 
@@ -438,7 +441,8 @@ class Neural_BOW(object):
                 print(classification_report(labels,self.class_prediction))
             if file:
                 summary_dict = self.__dict__.copy()
-                class_report_dict = classification_report(labels,self.class_prediction,output_dict=True)
+                class_report_dict = classification_report(labels,self.class_prediction,
+                                                          output_dict=True)
                 summary_dict.update(class_report_dict)
                 summary_dict.pop('graph',None)
                 summary_dict.pop('logits_prediction',None)
