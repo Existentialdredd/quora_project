@@ -441,7 +441,9 @@ class Neural_CNN(object):
                 print(classification_report(labels,self.class_prediction))
             if file:
                 summary_dict = self.__dict__.copy()
-                class_report_dict = classification_report(labels,self.class_prediction,output_dict=True)
+                class_report_dict = classification_report(labels,
+                                                          self.class_prediction,
+                                                          output_dict=True)
                 summary_dict.update(class_report_dict)
                 summary_dict.pop('graph',None)
                 summary_dict.pop('logits_prediction',None)
