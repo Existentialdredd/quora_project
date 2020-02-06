@@ -1,10 +1,9 @@
 #!/bin/bash
-
-read -ps "Yahoo Password:" PASS
+read -sp "Yahoo Password:" PASS
 read -p "Commit Message:" COMMIT
 
 echo Starting Python Script
-source activate quora_work
+source activate quora_test
 python neural_cnn_runs.py
 
 if [[ $? -eq 0 ]]; then
@@ -12,7 +11,7 @@ if [[ $? -eq 0 ]]; then
 	git commit -m "$COMMIT"
 	echo I AM DONE, SHUTTING DOWN
 	sendemail -l email.log  -f "kaftra@yahoo.com" \
-		-u "Instance-1 CNN Run Complete" \
+		-u "Instance-x CNN Run Complete" \
 		-t "epenner@berkeley.edu" \
 		-s "smtp.mail.yahoo.com:587" \
 		-o tls=yes \

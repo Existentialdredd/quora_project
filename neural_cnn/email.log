@@ -2,3 +2,7 @@ Oct 23 23:38:53 instance-1 sendemail[6357]: Email was sent successfully!  From: 
 Oct 24 22:14:38 instance-1 sendemail[5674]: Email was sent successfully!  From: <kaftra@yahoo.com> To: <epenner@berkeley.edu> Subject: [Instance-1 CNN Run Complete] Server: [smtp.mail.yahoo.com:587]
 Oct 25 03:39:36 instance-1 sendemail[3516]: Email was sent successfully!  From: <kaftra@yahoo.com> To: <epenner@berkeley.edu> Subject: [Instance-1 CNN Run Complete] Server: [smtp.mail.yahoo.com:587]
 Oct 25 15:16:51 instance-1 sendemail[2971]: Email was sent successfully!  From: <kaftra@yahoo.com> To: <epenner@berkeley.edu> Subject: [Instance-1 CNN Run Complete] Server: [smtp.mail.yahoo.com:587]
+Oct 24 21:16:35 instance-2 sendemail[5393]: Email was sent successfully!  From: <kaftra@yahoo.com> To: <epenner@berkeley.edu> Subject: [Instance-2 CNN Run Complete] Server: [smtp.mail.yahoo.com:587]
+Oct 25 02:20:00 instance-2 sendemail[2720]: Email was sent successfully!  From: <kaftra@yahoo.com> To: <epenner@berkeley.edu> Subject: [Instance-2 CNN Run Complete] Server: [smtp.mail.yahoo.com:587]
+Oct 25 14:54:04 instance-2 sendemail[2382]: Email was sent successfully!  From: <kaftra@yahoo.com> To: <epenner@berkeley.edu> Subject: [Instance-2 CNN Run Complete] Server: [smtp.mail.yahoo.com:587]
+Oct 25 19:17:04 instance-2 sendemail[2659]: Email was sent successfully!  From: <kaftra@yahoo.com> To: <epenner@berkeley.edu> Subject: [Instance-2 CNN Run Complete] Server: [smtp.mail.yahoo.com:587]
