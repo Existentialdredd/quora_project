@@ -295,6 +295,7 @@ class Neural_CNN(object):
         self.temp_ckpt = ''.join([self.check_pt_dir,'/run-',file_ext,'/','temp.ckpt'])
         self.final_ckpt = ''.join([self.check_pt_dir,'/run-',file_ext,'/','final.ckpt'])
         self.summary_file = ''.join([self.summary_dir,'/run-',file_ext,'.txt'])
+        self.most_recent_summary_file = ''.join([self.summary_dir,'/most_recent_summary.txt'])
 
 
 
@@ -417,7 +418,6 @@ class Neural_CNN(object):
         labels      (list) order class labels
         W_embed     (list(list)) trained word embedding Matrix
         report      (bool) indicator for whether a report is generated
-        file        (bool) indicator whether a summary file is generated
         """
         from sklearn.metrics import confusion_matrix,classification_report
         import json
@@ -433,20 +433,31 @@ class Neural_CNN(object):
             self.class_prediction = np.argmax(self.logits_prediction,axis=1)
 
             confusion_mat = confusion_matrix(labels,self.class_prediction)
+            true_neg = confusion_mat[0,0]/(confusion_mat[0,0]+confusion_mat[1,0])
+            false_neg = confusion_mat[0,1]/(confusion_mat[0,1]+confusion_mat[1,1])
+            ratio = true_neg/false_neg
 
             if report:
                 print('-----------{}-----------'.format('Confusion Matrix'))
                 print(confusion_mat,'\n')
                 print('-----------{}-----------'.format('Classification Report'))
                 print(classification_report(labels,self.class_prediction))
+                print('True Negative:', true_neg)
+                print('False Negative:', false_neg)
+                print('Upper Constraint:', ratio)
             if file:
                 summary_dict = self.__dict__.copy()
                 class_report_dict = classification_report(labels,
                                                           self.class_prediction,
                                                           output_dict=True)
                 summary_dict.update(class_report_dict)
+                summary_dict.update({'true_negative':true_neg,
+                              'false_negative':false_neg,
+                              'upper_constraint':ratio})
                 summary_dict.pop('graph',None)
                 summary_dict.pop('logits_prediction',None)
                 summary_dict.pop('class_prediction',None)
                 with open(self.summary_file,'w') as file:
+                    json.dump(summary_dict,file,indent=2)
+                with open(self.most_recent_summary_file,'w') as file:
                     json.dump(summary_dict,file,indent=2)
