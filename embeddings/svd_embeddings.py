@@ -8,19 +8,21 @@ from tqdm import tqdm as ProgressBar
 from sklearn.decomposition import TruncatedSVD
 
 class SVD_Embeddings(object):
-#"""
-#PURPOSE: Generate embedding vectors for the unique set of tokens (vocabulary) contained
-#         within a training set consisting of a list of ordered sequences of tokens.
-#         Embeddings are generated via Singular Value Decomposition.
-#"""
+    """
+    PURPOSE: Generate embedding vectors for the unique set of tokens (vocabulary) contained
+             within a training set consisting of a list of ordered sequences of tokens.
+             Embeddings are generated via Singular Value Decomposition.
+
+    ARGS:
+    sequences               (list(str)) or (list(list(str)) strings or tokenized list
+    embedding_dimension     (int) length of token embedding vectors
+    max_sequence_length     (int) longest token sequence allowed
+    tokenized               (bool) indicator for whehter sequences are tokenized lists
+    """
     def __init__(self,sequences,embedding_dimension=100,max_sequence_length=100,tokenized=False):
         """
         PURPOSE: Initial setup and token occurance/cooccurance counting
 
-        ARGS:
-        sequences               (list(str)) or (list(list(str)) strings or tokenized list
-        embedding_dimension     (int) length of token embedding vectors
-                tokenized               (bool) indicator for whehter sequences are tokenized lists
         """
         #Attribute Setup
         self.EMBD_DIM = embedding_dimension
