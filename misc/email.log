@@ -2,3 +2,4 @@ Oct 24 17:20:20 instance-1 sendemail[1505]: Email was sent successfully!  From: 
 Oct 24 18:26:11 instance-1 sendemail[2421]: ERROR => ERROR => SMTP-AUTH: Authentication to smtp.mail.yahoo.com:587 failed.
 Oct 24 18:26:32 instance-1 sendemail[2423]: Email was sent successfully!  From: <kaftra@yahoo.com> To: <epenner@berkeley.edu> Subject: [THIS IS A TEST EMAIL] Server: [smtp.mail.yahoo.com:587]
 Oct 24 18:13:37 instance-2 sendemail[3154]: Email was sent successfully!  From: <kaftra@yahoo.com> To: <epenner@berkeley.edu> Subject: [Instance-1 CNN Run Complete] Server: [smtp.mail.yahoo.com:587]
+Oct 24 17:30:49 instance-3 sendemail[1728]: ERROR => No TLS support!  SendEmail can't load required libraries. (try installing Net::SSLeay and IO::Socket::SSL)
