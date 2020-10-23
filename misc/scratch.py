@@ -21,8 +21,6 @@ ngrams = NgramModel(comments)
 #test_level_jm_3 = ngrams.jelinek_mercer(3,cnvx_param=0.5,scnd_smoother='additive',param=0)
 #pp.pprint(test_level_jm_3)
 
-
-
 ngrams.train_classifier(gram_length=2,smoothing='jelinek-mercer',
                                        scnd_smoother='additive',
                                        cnvx_param=0.5,

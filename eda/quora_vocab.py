@@ -5,9 +5,10 @@ import numpy as np
 import utilities as ut
 from collections import defaultdict, Counter
 
+
 class CommentVocab(object):
     """
-    PURPOSE: Generate a vocabulary, uni/bi/tri gram counts, and plotting tools for 
+    PURPOSE: Generate a vocabulary, uni/bi/tri gram counts, and plotting tools for
              a quora comments
 
     ARGS:

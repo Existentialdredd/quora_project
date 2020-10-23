@@ -9,12 +9,14 @@ from transformers import BertTokenizer, BertForSequenceClassification, AdamW
 from data.pytorch_dataset import QuoraBertDataSet, bert_tensor_colate
 from pprint import pformat
 
-train_data = QuoraBertDataSet('train_neg_50k.csv', 'train_pos_50k.csv', data_slice=[0, 10])
-valid_data = QuoraBertDataSet('train_neg_50k.csv', 'train_pos_50k.csv', data_slice=[11, 21])
-train_dataloader = DataLoader(train_data, batch_size=4 ,collate_fn=bert_tensor_colate)
+train_data = QuoraBertDataSet('train_neg_50k.csv', 'train_pos_50k.csv', data_slice=[0, 100])
+valid_data = QuoraBertDataSet('train_neg_50k.csv', 'train_pos_50k.csv', data_slice=[101, 201])
+train_dataloader = DataLoader(train_data, batch_size=50, collate_fn=bert_tensor_colate, shuffle=True)
 valid_dataloader = DataLoader(valid_data, batch_size=len(valid_data), collate_fn=bert_tensor_colate)
 
 model = BertForSequenceClassification.from_pretrained('bert-base-uncased', return_dict=True)
+for param in model.base_model.parameters():
+    param.requires_grad = False
 
 optimizer = AdamW(model.parameters(), lr=1e-5)
 

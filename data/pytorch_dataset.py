@@ -4,9 +4,7 @@ from torch.utils.data import Dataset
 import random
 import numpy as np
 import csv
-import pandas as pd
-from transformers import BertTokenizer, BertForSequenceClassification, AdamW
-from pprint import pformat
+from transformers import BertTokenizer, BertForSequenceClassification
 
 
 class QuoraCommentsDataset(Dataset):
@@ -14,7 +12,11 @@ class QuoraCommentsDataset(Dataset):
     Quora Comments Dataset
     """
 
-    def __init__(self, pos_csv_file, neg_csv_file, root_dir='~/Desktop/resources/quora_project/data/', data_slice=[0, 100]):
+    def __init__(self,
+                 pos_csv_file,
+                 neg_csv_file,
+                 root_dir='~/Desktop/resources/quora_project/data/',
+                 data_slice=[0, 100]):
 
         NEG_DATA_FILE = os.path.join(root_dir, pos_csv_file)
         POS_DATA_FILE = os.path.join(root_dir, neg_csv_file)
@@ -52,7 +54,11 @@ class QuoraCommentsDataset(Dataset):
 
 class QuoraBertDataSet(QuoraCommentsDataset):
 
-    def __init__(self, pos_csv_file, neg_csv_file, root_dir='/Users/upenner/Desktop/resources/quora_project/data/', data_slice=[0, 100]):
+    def __init__(self,
+                 pos_csv_file,
+                 neg_csv_file,
+                 root_dir='/Users/upenner/Desktop/resources/quora_project/data/',
+                 data_slice=[0, 100]):
         super(QuoraBertDataSet, self).__init__(pos_csv_file, neg_csv_file, root_dir, data_slice)
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.tokenized_features = self.tokenizer(self.features, padding=True, truncation=True, return_tensors='pt')
@@ -77,3 +83,5 @@ def bert_tensor_colate(output_dict_list):
     output['label'] = torch.stack([out['label'] for out in output_dict_list])
 
     return output
+
+
