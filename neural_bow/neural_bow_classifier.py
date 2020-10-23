@@ -1,14 +1,13 @@
 from __future__ import print_function
 from __future__ import division
 from tqdm import tqdm as ProgressBar
-from collections import defaultdict, Counter
-import numpy as np
-import tensorflow.compat.v1 as tf
-tf.logging.set_verbosity(tf.logging.ERROR)
-import scipy.sparse
 import datetime as dt
 import random
 import os
+import numpy as np
+import tensorflow.compat.v1 as tf
+tf.logging.set_verbosity(tf.logging.ERROR)
+
 
 class Neural_BOW(object):
     """
@@ -32,24 +31,23 @@ class Neural_BOW(object):
         checkpoint_dir              (str) directory where checkpoints are kept
     """
 
-    def __init__(self,setup):
-        self.LRN_RATE = setup.get('learning_rate',0.01)
-        self.MAX_SEQ_LEN = setup.get('max_sequence_length',100)
-        self.EMBD_DIM = setup.get('embedding_dimension',100)
-        self.BATCH_NORM  = setup.get('batch_normalization',True)
-        self.n_hidden = setup.get('n_hidden',[100,100])
-        self.hidden_activation = setup.get('hidden_activation','elu')
-        self.DROP_RATE = setup.get('dropout_rate',0.5)
-        self.N_TOKN = setup.get('n_tokens',100)
-        self.N_OUTPUTS = setup.get('n_outputs',2)
-        self.root_log_dir = setup.get('root_log_dir',''.join([os.getcwd(),
-                                                              '/neural_bow_logs']))
-        self.check_pt_dir = setup.get('checkpoint_dir',''.join([os.getcwd(),
-                                                                '/neural_bow_ckpts']))
-        self.summary_dir = setup.get('summary_dir',''.join([os.getcwd(),
-                                                           '/neural_bow_run_summary']))
+    def __init__(self, setup):
+        self.LRN_RATE = setup.get('learning_rate', 0.01)
+        self.MAX_SEQ_LEN = setup.get('max_sequence_length', 100)
+        self.EMBD_DIM = setup.get('embedding_dimension', 100)
+        self.BATCH_NORM = setup.get('batch_normalization', True)
+        self.n_hidden = setup.get('n_hidden', [100, 100])
+        self.hidden_activation = setup.get('hidden_activation', 'elu')
+        self.DROP_RATE = setup.get('dropout_rate', 0.5)
+        self.N_TOKN = setup.get('n_tokens', 100)
+        self.N_OUTPUTS = setup.get('n_outputs', 2)
+        self.root_log_dir = setup.get(
+            'root_log_dir', ''.join([os.getcwd(), '/neural_bow_logs']))
+        self.check_pt_dir = setup.get(
+            'checkpoint_dir', ''.join([os.getcwd(), '/neural_bow_ckpts']))
+        self.summary_dir = setup.get(
+            'summary_dir', ''.join([os.getcwd(), '/neural_bow_run_summary']))
         self.graph = None
-
 
     def _placeholders_(self):
         """
@@ -62,19 +60,18 @@ class Neural_BOW(object):
         training_         (tf.tensor) training indicator
         """
         token_sequences_ = tf.placeholder(tf.int32,
-                                          shape=[None,self.MAX_SEQ_LEN],
+                                          shape=[None, self.MAX_SEQ_LEN],
                                           name='TokenSequences')
         embedding_mat_ = tf.placeholder(tf.float32,
-                                        shape=[self.N_TOKN+1,self.EMBD_DIM],
+                                        shape=[self.N_TOKN+1, self.EMBD_DIM],
                                         name='W_embed')
-        Y_ = tf.placeholder(tf.int64,shape=[None],name='Y')
+        Y_ = tf.placeholder(tf.int64, shape=[None], name='Y')
         training_ = tf.placeholder_with_default(False,
                                                 shape=(),
                                                 name='training')
-        return token_sequences_,embedding_mat_,Y_,training_
+        return token_sequences_, embedding_mat_, Y_, training_
 
-
-    def _embedding_lookup_layer_(self,embedding_mat_,token_sequences_,reduce='sum'):
+    def _embedding_lookup_layer_(self, embedding_mat_, token_sequences_, reduce='sum'):
         """
         PURPOSE: Constructing the Embedding Look up Layer
 
@@ -91,14 +88,13 @@ class Neural_BOW(object):
                                                      name='Embeddings')
         if reduce == 'sum':
             embedding_sum_ = tf.reduce_sum(embedding_sequence_,
-                                           axis=1,name='BagOfWords')
+                                           axis=1, name='BagOfWords')
         elif reduce == 'mean':
             embedding_sum_ = tf.reduce_mean(embedding_sequence_,
-                                            axis=1,name='BagOfWords')
+                                            axis=1, name='BagOfWords')
         return embedding_sum_
 
-
-    def __activation_lookup__(self,layer,layer_name):
+    def __activation_lookup__(self, layer, layer_name):
         """
         PURPOSE: Applying an activation function to a layer
 
@@ -110,15 +106,14 @@ class Neural_BOW(object):
         activation_ (tf.tensor) layer with activation function applied
         """
         if self.hidden_activation == 'elu':
-            activation_ = tf.nn.elu(layer,name=layer_name)
+            activation_ = tf.nn.elu(layer, name=layer_name)
         if self.hidden_activation == 'relu':
-            activation_ = tf.nn.relu(layer,name=layer_name)
+            activation_ = tf.nn.relu(layer, name=layer_name)
         if self.hidden_activation == 'leaky_relu':
-            activation_ = tf.nn.leaky_relu(layer,name=layer_name)
+            activation_ = tf.nn.leaky_relu(layer, name=layer_name)
         return activation_
 
-
-    def _fully_connected_layer_(self,embedding_sum_,training_):
+    def _fully_connected_layer_(self, embedding_sum_, training_):
         """
         PURPOSE: Constructing the sequence of hidden layers
 
@@ -131,28 +126,31 @@ class Neural_BOW(object):
         """
         he_init_ = tf.initializers.he_uniform()
         h_ = embedding_sum_
-        for i,dim in enumerate(self.n_hidden):
-            with tf.variable_scope(("HiddenLayer_%d"%i)):
+        for i, dim in enumerate(self.n_hidden):
+            with tf.variable_scope(("HiddenLayer_%d" % i)):
                 if self.BATCH_NORM:
-                    h_=tf.layers.dense(h_,dim,
-                                        kernel_initializer=he_init_,
-                                        name=("Hidden_%d_b4_bn"%i))
-                    h_=tf.layers.batch_normalization(h_,
-                                                     training=training_,
-                                                     name=("Hidden_%d_bn"%i))
-                    h_=self.__activation_lookup__(h_,("Hidden_%d_act"%i))
+                    h_ = tf.layers.dense(h_,
+                                         dim,
+                                         kernel_initializer=he_init_,
+                                         name=("Hidden_%d_b4_bn" % i))
+                    h_ = tf.layers.batch_normalization(h_,
+                                                       training=training_,
+                                                       name=("Hidden_%d_bn" %
+                                                             i))
+                    h_ = self.__activation_lookup__(h_, ("Hidden_%d_act" % i))
                 else:
-                    h_ = tf.layers.dense(h_,dim,
+                    h_ = tf.layers.dense(h_,
+                                         dim,
                                          activation=self.hidden_activation,
                                          kernel_initializer=he_init_,
-                                         name=("Hidden_%d"%i))
+                                         name=("Hidden_%d" % i))
                 if self.DROP_RATE > 0:
-                    h_ = tf.layers.dropout(h_,rate=self.DROP_RATE,
+                    h_ = tf.layers.dropout(h_,
+                                           rate=self.DROP_RATE,
                                            training=training_)
         return h_
 
-
-    def _output_layer_(self,h_):
+    def _output_layer_(self, h_):
         """
         PURPOSE: Constructing the logits output layer
 
@@ -162,11 +160,10 @@ class Neural_BOW(object):
         RETURNS:
         logits_ (tf.tensor) logits output layer
         """
-        logits_ = tf.layers.dense(h_,self.N_OUTPUTS,name='Logits_lyr')
+        logits_ = tf.layers.dense(h_, self.N_OUTPUTS, name='Logits_lyr')
         return logits_
 
-
-    def _loss_function_(self,logits_,Y_):
+    def _loss_function_(self, logits_, Y_):
         """
         PURPOSE:Constructing the cross entropy loss function
 
@@ -181,12 +178,12 @@ class Neural_BOW(object):
         xentropy_ = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=Y_,
                                                                    logits=logits_,
                                                                    name="Xentropy")
-        loss_ = tf.reduce_mean(xentropy_,name="Loss")
+        loss_ = tf.reduce_mean(xentropy_, name="Loss")
 
         return xentropy_, loss_
 
 
-    def _optimizer_(self,loss_):
+    def _optimizer_(self, loss_):
         """
         PURPOSE: Constructing the optimizer and training method
 
@@ -199,10 +196,9 @@ class Neural_BOW(object):
         """
         optimizer_ = tf.train.AdagradOptimizer(learning_rate=self.LRN_RATE)
         training_op_ = optimizer_.minimize(loss_)
-        return optimizer_,training_op_
+        return optimizer_, training_op_
 
-
-    def _evaluation_(self,logits_,Y_):
+    def _evaluation_(self, logits_, Y_):
         """
         PURPOSE: Constructing the Evaluation Piece
 
@@ -215,9 +211,8 @@ class Neural_BOW(object):
         accuracy_    (tf.tensor) accuracy on entire dataset
         """
         correct_ = tf.nn.in_top_k(logits_, Y_, 1)
-        accuracy_ = tf.reduce_mean(tf.cast(correct_,tf.float32))
-        return correct_,accuracy_
-
+        accuracy_ = tf.reduce_mean(tf.cast(correct_, tf.float32))
+        return correct_, accuracy_
 
     def _initializer_(self):
         """
@@ -230,7 +225,6 @@ class Neural_BOW(object):
         init_ = tf.global_variables_initializer()
         saver_ = tf.train.Saver()
         return init_, saver_
-
 
     def build_graph(self):
         """
@@ -340,33 +334,33 @@ class Neural_BOW(object):
         done,epoch,acc_reg = 0,0,[0,1]
 
         with self.graph.as_default():
-            correct_,accuracy_ = tf.get_collection('Eval_ops')
+            correct_,accuracy = tf.get_collection('Eval_ops')
             acc_summary = tf.summary.scalar('Accuracy',accuracy_)
-            file_writer = tf.summary.FileWriter(self.log_dir,self.graph)
+            file_writer = tf.summary.FileWriter(self.log_dir, self.graph)
 
         with tf.Session(graph=self.graph) as sess:
-            init_,saver_ = tf.get_collection('Init_Save_ops')
-            correct_,accuracy_ = tf.get_collection('Eval_ops')
-            optimizer_,training_op_ = tf.get_collection("Optimizer_ops")
-            token_sequences_,embedding_mat_,Y_,training_ = tf.get_collection("Input_var")
+            init_, saver_ = tf.get_collection('Init_Save_ops')
+            correct_, accuracy_ = tf.get_collection('Eval_ops')
+            optimizer_, training_op_ = tf.get_collection("Optimizer_ops")
+            token_sequences_, embedding_mat_, Y_, training_ = tf.get_collection("Input_var")
 
             sess.run(init_)
             while done != 1:
                 epoch += 1
-                batches = self._partition_(list(range(n_train_ex)),n_batches)
-                #Mini-Batch Training step
+                batches = self._partition_(list(range(n_train_ex)), n_batches)
+                # Mini-Batch Training step
                 for iteration in ProgressBar(range(n_batches),
                                              'Epoch {} Iterations'.format(epoch)):
                     token_sequences_batch = [token_sequences_train[indx]
-                                              for indx in batches[iteration]]
+                                             for indx in batches[iteration]]
                     labels_batch = [labels_train[indx]
-                                     for indx in batches[iteration]]
+                                    for indx in batches[iteration]]
                     sess.run([training_op_],
-                             feed_dict={training_:True,
-                                        embedding_mat_:embeddings,
-                                        token_sequences_:token_sequences_batch,
-                                        Y_:labels_batch})
-                    #Intermediate Summary Writing
+                             feed_dict={training_: True,
+                                        embedding_mat_: embeddings,
+                                        token_sequences_: token_sequences_batch,
+                                        Y_: labels_batch})
+                    # Intermediate Summary Writing
                     if iteration % 10 == 0:
                         summary_str = acc_summary.eval(feed_dict={training_:True,
                                                                   embedding_mat_:embeddings,
@@ -400,10 +394,10 @@ class Neural_BOW(object):
                                                      embedding_mat_:embeddings,
                                                      token_sequences_:token_sequences_valid,
                                                      Y_:labels_valid})
-#                print('Register:{} Epoch:{:2d} Train Accuracy:{:6.4f} Validation Accuracy: {:6.4f}'.format(acc_reg,
-#                                                                                        epoch,
-#                                                                                        acc_train,
-#                                                                                        acc_test))
+                #                print('Register:{} Epoch:{:2d} Train Accuracy:{:6.4f} Validation Accuracy: {:6.4f}'.format(acc_reg,
+                #                                                                                        epoch,
+                #                                                                                        acc_train,
+                #                                                                                        acc_test))
                 #Final Model Save
                 save_path = saver_.save(sess,self.final_ckpt)
 
