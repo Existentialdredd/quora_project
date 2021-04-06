@@ -30,7 +30,6 @@ class Neural_BOW(object):
         root_log_dir                (str) directory where tf logs will be kept
         checkpoint_dir              (str) directory where checkpoints are kept
     """
-
     def __init__(self, setup):
         self.LRN_RATE = setup.get('learning_rate', 0.01)
         self.MAX_SEQ_LEN = setup.get('max_sequence_length', 100)
@@ -63,7 +62,7 @@ class Neural_BOW(object):
                                           shape=[None, self.MAX_SEQ_LEN],
                                           name='TokenSequences')
         embedding_mat_ = tf.placeholder(tf.float32,
-                                        shape=[self.N_TOKN+1, self.EMBD_DIM],
+                                        shape=[self.N_TOKN + 1, self.EMBD_DIM],
                                         name='W_embed')
         Y_ = tf.placeholder(tf.int64, shape=[None], name='Y')
         training_ = tf.placeholder_with_default(False,
@@ -71,7 +70,10 @@ class Neural_BOW(object):
                                                 name='training')
         return token_sequences_, embedding_mat_, Y_, training_
 
-    def _embedding_lookup_layer_(self, embedding_mat_, token_sequences_, reduce='sum'):
+    def _embedding_lookup_layer_(self,
+                                 embedding_mat_,
+                                 token_sequences_,
+                                 reduce='sum'):
         """
         PURPOSE: Constructing the Embedding Look up Layer
 
@@ -88,10 +90,12 @@ class Neural_BOW(object):
                                                      name='Embeddings')
         if reduce == 'sum':
             embedding_sum_ = tf.reduce_sum(embedding_sequence_,
-                                           axis=1, name='BagOfWords')
+                                           axis=1,
+                                           name='BagOfWords')
         elif reduce == 'mean':
             embedding_sum_ = tf.reduce_mean(embedding_sequence_,
-                                            axis=1, name='BagOfWords')
+                                            axis=1,
+                                            name='BagOfWords')
         return embedding_sum_
 
     def __activation_lookup__(self, layer, layer_name):
@@ -175,13 +179,11 @@ class Neural_BOW(object):
         xentropy    (tf.tensor) raw cross entropy values
         loss_       (tf.tensor) mean cross cross entropy
         """
-        xentropy_ = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=Y_,
-                                                                   logits=logits_,
-                                                                   name="Xentropy")
+        xentropy_ = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            labels=Y_, logits=logits_, name="Xentropy")
         loss_ = tf.reduce_mean(xentropy_, name="Loss")
 
         return xentropy_, loss_
-
 
     def _optimizer_(self, loss_):
         """
@@ -233,57 +235,63 @@ class Neural_BOW(object):
         self.graph = tf.Graph()
         with self.graph.as_default():
             with tf.name_scope("PlaceHolders"):
-                token_sequences_,embedding_mat_,Y_,training_ = self._placeholders_()
-            for var in (token_sequences_,embedding_mat_,Y_,training_):
-                tf.add_to_collection("Input_var",var)
+                token_sequences_, embedding_mat_, Y_, training_ = self._placeholders_(
+                )
+            for var in (token_sequences_, embedding_mat_, Y_, training_):
+                tf.add_to_collection("Input_var", var)
 
             with tf.name_scope("EmbeddingLyr"):
-                embedding_sum_ = self._embedding_lookup_layer_(embedding_mat_,token_sequences_)
+                embedding_sum_ = self._embedding_lookup_layer_(
+                    embedding_mat_, token_sequences_)
 
             with tf.name_scope("HiddenLyr"):
-                h_ = self._fully_connected_layer_(embedding_sum_,training_)
+                h_ = self._fully_connected_layer_(embedding_sum_, training_)
 
             with tf.name_scope("OutputLyr"):
                 logits_ = self._output_layer_(h_)
             tf.add_to_collection("LogitsLyr", logits_)
 
             with tf.name_scope("Loss"):
-                xentropy_,loss_ = self._loss_function_(logits_,Y_)
-            for op in (xentropy_,loss_):
-                tf.add_to_collection("Loss_ops",op)
+                xentropy_, loss_ = self._loss_function_(logits_, Y_)
+            for op in (xentropy_, loss_):
+                tf.add_to_collection("Loss_ops", op)
 
             with tf.name_scope("Optimizer"):
-                optimizer_,training_op_ = self._optimizer_(loss_)
-            for op in (optimizer_,training_op_):
-                tf.add_to_collection("Optimizer_ops",op)
+                optimizer_, training_op_ = self._optimizer_(loss_)
+            for op in (optimizer_, training_op_):
+                tf.add_to_collection("Optimizer_ops", op)
 
             with tf.name_scope("Evaluation"):
-                correct_,accuracy_ = self._evaluation_(logits_,Y_)
-            for op in (correct_,accuracy_):
-                tf.add_to_collection("Eval_ops",op)
+                correct_, accuracy_ = self._evaluation_(logits_, Y_)
+            for op in (correct_, accuracy_):
+                tf.add_to_collection("Eval_ops", op)
 
             with tf.name_scope("VariableInit"):
-                init_,saver_ = self._initializer_()
-            for op in (init_,saver_):
-                tf.add_to_collection("Init_Save_ops",op)
-        #Generating file names
+                init_, saver_ = self._initializer_()
+            for op in (init_, saver_):
+                tf.add_to_collection("Init_Save_ops", op)
+        # Generating file names
         self._file_names_()
-
 
     def _file_names_(self):
         """
         PURPOSE: Constructing appropriate file names for logging, and checkpointing
         """
         now_time = dt.datetime.now().second
-        file_ext = ''.join(['FF','_',str(self.EMBD_DIM)
-                                ,'_',str(len(self.n_hidden))
-                                ,'x',str(self.n_hidden[0])
-                                ,'-t',str(now_time)])
-        self.log_dir = ''.join([self.root_log_dir,'/run-',file_ext,'/'])
-        self.temp_ckpt = ''.join([self.check_pt_dir,'/run-',file_ext,'/','temp.ckpt'])
-        self.final_ckpt = ''.join([self.check_pt_dir,'/run-',file_ext,'/','final.ckpt'])
-        self.summary_file = ''.join([self.summary_dir,'/run-',file_ext,'.txt'])
-
+        file_ext = ''.join([
+            'FF', '_',
+            str(self.EMBD_DIM), '_',
+            str(len(self.n_hidden)), 'x',
+            str(self.n_hidden[0]), '-t',
+            str(now_time)
+        ])
+        self.log_dir = ''.join([self.root_log_dir, '/run-', file_ext, '/'])
+        self.temp_ckpt = ''.join(
+            [self.check_pt_dir, '/run-', file_ext, '/', 'temp.ckpt'])
+        self.final_ckpt = ''.join(
+            [self.check_pt_dir, '/run-', file_ext, '/', 'final.ckpt'])
+        self.summary_file = ''.join(
+            [self.summary_dir, '/run-', file_ext, '.txt'])
 
     def write_graph(self):
         """
@@ -292,22 +300,20 @@ class Neural_BOW(object):
         """
         if self.graph is not None:
             with tf.Session(graph=self.graph) as sess:
-                init_,_ = tf.get_collection('Init_Save_ops')
+                init_, _ = tf.get_collection('Init_Save_ops')
                 init_.run()
-                file_writer = tf.summary.FileWriter(self.log_dir,self.graph)
+                file_writer = tf.summary.FileWriter(self.log_dir, self.graph)
         else:
             print('No Current Graph')
 
-
-    def _partition_(self,list_in,n):
+    def _partition_(self, list_in, n):
         """
         PURPOSE: Generate indexs for minibatchs used in minibatch gradient descent
         """
         random.shuffle(list_in)
         return [list_in[i::n] for i in range(n)]
 
-
-    def train_graph(self,train_dict):
+    def train_graph(self, train_dict):
         """
         PURPOSE: Train a deep neural net classifier for baskets of products
 
@@ -321,88 +327,111 @@ class Neural_BOW(object):
             batch_size             (int) number of training example per mini batch
             n_stop                 (int) early stopping criteria
         """
-        embeddings = train_dict.get('embeddings',None)
-        token_sequences_train = train_dict.get('sequences_train',None)
-        labels_train = train_dict.get('labels_train',None)
-        token_sequences_valid = train_dict.get('sequences_valid',None)
-        labels_valid = train_dict.get('labels_valid',None)
-        batch_size = train_dict.get('batch_size',100)
-        n_stop = train_dict.get('n_stop',5)
+        embeddings = train_dict.get('embeddings', None)
+        token_sequences_train = train_dict.get('sequences_train', None)
+        labels_train = train_dict.get('labels_train', None)
+        token_sequences_valid = train_dict.get('sequences_valid', None)
+        labels_valid = train_dict.get('labels_valid', None)
+        batch_size = train_dict.get('batch_size', 100)
+        n_stop = train_dict.get('n_stop', 5)
 
         n_train_ex = len(token_sequences_train)
         n_batches = n_train_ex // batch_size
-        done,epoch,acc_reg = 0,0,[0,1]
+        done, epoch, acc_reg = 0, 0, [0, 1]
 
         with self.graph.as_default():
-            correct_,accuracy = tf.get_collection('Eval_ops')
-            acc_summary = tf.summary.scalar('Accuracy',accuracy_)
+            correct_, accuracy = tf.get_collection('Eval_ops')
+            acc_summary = tf.summary.scalar('Accuracy', accuracy_)
             file_writer = tf.summary.FileWriter(self.log_dir, self.graph)
 
         with tf.Session(graph=self.graph) as sess:
             init_, saver_ = tf.get_collection('Init_Save_ops')
             correct_, accuracy_ = tf.get_collection('Eval_ops')
             optimizer_, training_op_ = tf.get_collection("Optimizer_ops")
-            token_sequences_, embedding_mat_, Y_, training_ = tf.get_collection("Input_var")
+            token_sequences_, embedding_mat_, Y_, training_ = tf.get_collection(
+                "Input_var")
 
             sess.run(init_)
             while done != 1:
                 epoch += 1
                 batches = self._partition_(list(range(n_train_ex)), n_batches)
                 # Mini-Batch Training step
-                for iteration in ProgressBar(range(n_batches),
-                                             'Epoch {} Iterations'.format(epoch)):
-                    token_sequences_batch = [token_sequences_train[indx]
-                                             for indx in batches[iteration]]
-                    labels_batch = [labels_train[indx]
-                                    for indx in batches[iteration]]
-                    sess.run([training_op_],
-                             feed_dict={training_: True,
-                                        embedding_mat_: embeddings,
-                                        token_sequences_: token_sequences_batch,
-                                        Y_: labels_batch})
+                for iteration in ProgressBar(
+                        range(n_batches), 'Epoch {} Iterations'.format(epoch)):
+                    token_sequences_batch = [
+                        token_sequences_train[indx]
+                        for indx in batches[iteration]
+                    ]
+                    labels_batch = [
+                        labels_train[indx] for indx in batches[iteration]
+                    ]
+                    sess.run(
+                        [training_op_],
+                        feed_dict={
+                            training_: True,
+                            embedding_mat_: embeddings,
+                            token_sequences_: token_sequences_batch,
+                            Y_: labels_batch
+                        })
                     # Intermediate Summary Writing
                     if iteration % 10 == 0:
-                        summary_str = acc_summary.eval(feed_dict={training_:True,
-                                                                  embedding_mat_:embeddings,
-                                                                  token_sequences_:token_sequences_valid,
-                                                                  Y_:labels_valid})
-                        step = epoch*n_batches + iteration
-                        file_writer.add_summary(summary_str,step)
+                        summary_str = acc_summary.eval(
+                            feed_dict={
+                                training_: True,
+                                embedding_mat_: embeddings,
+                                token_sequences_: token_sequences_valid,
+                                Y_: labels_valid
+                            })
+                        step = epoch * n_batches + iteration
+                        file_writer.add_summary(summary_str, step)
                 #Early Stopping Regularization
                 if epoch % 2 == 0:
                     # Evaluating the Accuracy of Current Model
-                    acc_ckpt = accuracy_.eval(feed_dict={training_:False,
-                                                         embedding_mat_:embeddings,
-                                                         token_sequences_:token_sequences_valid,
-                                                         Y_:labels_valid})
+                    acc_ckpt = accuracy_.eval(
+                        feed_dict={
+                            training_: False,
+                            embedding_mat_: embeddings,
+                            token_sequences_: token_sequences_valid,
+                            Y_: labels_valid
+                        })
                     if acc_ckpt > acc_reg[0]:
                         # Saving the new "best" model
-                        save_path = saver_.save(sess,self.temp_ckpt)
-                        acc_reg = [acc_ckpt,1]
+                        save_path = saver_.save(sess, self.temp_ckpt)
+                        acc_reg = [acc_ckpt, 1]
                     elif acc_ckpt <= acc_reg[0] and acc_reg[1] < n_stop:
                         acc_reg[1] += 1
                     elif acc_ckpt <= acc_reg[0] and acc_reg[1] >= n_stop:
                         #Restoring previous "best" model
-                        saver_.restore(sess,self.temp_ckpt)
+                        saver_.restore(sess, self.temp_ckpt)
                         done = 1
                 #Calculating Accuracy for Output
-                acc_train = accuracy_.eval(feed_dict={training_:False,
-                                                      embedding_mat_:embeddings,
-                                                      token_sequences_:token_sequences_train,
-                                                      Y_:labels_train})
-                acc_test = accuracy_.eval(feed_dict={training_:False,
-                                                     embedding_mat_:embeddings,
-                                                     token_sequences_:token_sequences_valid,
-                                                     Y_:labels_valid})
+                acc_train = accuracy_.eval(
+                    feed_dict={
+                        training_: False,
+                        embedding_mat_: embeddings,
+                        token_sequences_: token_sequences_train,
+                        Y_: labels_train
+                    })
+                acc_test = accuracy_.eval(
+                    feed_dict={
+                        training_: False,
+                        embedding_mat_: embeddings,
+                        token_sequences_: token_sequences_valid,
+                        Y_: labels_valid
+                    })
                 #                print('Register:{} Epoch:{:2d} Train Accuracy:{:6.4f} Validation Accuracy: {:6.4f}'.format(acc_reg,
                 #                                                                                        epoch,
                 #                                                                                        acc_train,
                 #                                                                                        acc_test))
                 #Final Model Save
-                save_path = saver_.save(sess,self.final_ckpt)
+                save_path = saver_.save(sess, self.final_ckpt)
 
-
-    def predict_and_report(self,sequences,labels,W_embed,report=True,file=False):
+    def predict_and_report(self,
+                           sequences,
+                           labels,
+                           W_embed,
+                           report=True,
+                           file=False):
         """
         PURPOSE: Prediction using best model on provided examples and generating
                  report if indicated and labels are provided.
@@ -414,32 +443,38 @@ class Neural_BOW(object):
         report      (bool) indicator for whether a report is generated
         file        (bool) indicator whether a summary file is generated
         """
-        from sklearn.metrics import confusion_matrix,classification_report
+        from sklearn.metrics import confusion_matrix, classification_report
         import json
 
         with tf.Session(graph=self.graph) as sess:
-            _,saver_ = tf.get_collection('Init_Save_ops')
-            saver_.restore(sess,self.final_ckpt)
-            logits_ = self.graph.get_tensor_by_name('OutputLyr/Logits_lyr/BiasAdd:0')
-            token_sequences_,embedding_mat_,Y_,training_ = tf.get_collection("Input_var")
-            self.logits_prediction = logits_.eval(feed_dict={embedding_mat_:W_embed,
-                                                        token_sequences_:sequences,
-                                                        training_:False})
-            self.class_prediction = np.argmax(self.logits_prediction,axis=1)
+            _, saver_ = tf.get_collection('Init_Save_ops')
+            saver_.restore(sess, self.final_ckpt)
+            logits_ = self.graph.get_tensor_by_name(
+                'OutputLyr/Logits_lyr/BiasAdd:0')
+            token_sequences_, embedding_mat_, Y_, training_ = tf.get_collection(
+                "Input_var")
+            self.logits_prediction = logits_.eval(
+                feed_dict={
+                    embedding_mat_: W_embed,
+                    token_sequences_: sequences,
+                    training_: False
+                })
+            self.class_prediction = np.argmax(self.logits_prediction, axis=1)
 
             if report:
-                confusion_mat = confusion_matrix(labels,self.class_prediction)
+                confusion_mat = confusion_matrix(labels, self.class_prediction)
                 print('-----------{}-----------'.format('Confusion Matrix'))
-                print(confusion_mat,'\n')
-                print('-----------{}-----------'.format('Classification Report'))
-                print(classification_report(labels,self.class_prediction))
+                print(confusion_mat, '\n')
+                print(
+                    '-----------{}-----------'.format('Classification Report'))
+                print(classification_report(labels, self.class_prediction))
             if file:
                 summary_dict = self.__dict__.copy()
-                class_report_dict = classification_report(labels,self.class_prediction,
-                                                          output_dict=True)
+                class_report_dict = classification_report(
+                    labels, self.class_prediction, output_dict=True)
                 summary_dict.update(class_report_dict)
-                summary_dict.pop('graph',None)
-                summary_dict.pop('logits_prediction',None)
-                summary_dict.pop('class_prediction',None)
-                with open(self.summary_file,'w') as file:
-                    json.dump(summary_dict,file,indent=2)
+                summary_dict.pop('graph', None)
+                summary_dict.pop('logits_prediction', None)
+                summary_dict.pop('class_prediction', None)
+                with open(self.summary_file, 'w') as file:
+                    json.dump(summary_dict, file, indent=2)
