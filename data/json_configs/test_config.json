@@ -1,0 +1,7 @@
+{
+    "name": "first_test",
+    "description": "used to test the functionality of the dataclasses",
+    "posDataFile": "train_pos.csv",
+    "negDataFile": "train_neg.csv",
+    "dataSlice": [0,100]
+}

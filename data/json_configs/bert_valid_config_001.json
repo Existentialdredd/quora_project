@@ -1,0 +1,7 @@
+{
+    "name": "bert valid config 001",
+    "description": "used to test the functionality of the dataclasses",
+    "posDataFile": "train_pos.csv",
+    "negDataFile": "train_neg.csv",
+    "dataSlice": [101,200]
+}
