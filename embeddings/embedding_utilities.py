@@ -1,4 +1,4 @@
-def embedding_extraction(filename,embedding_length):
+def embedding_extraction(filename, embedding_length):
     """
     PURPOSE: Extracting embeddings and a token to id coorespondance dictionary
 
@@ -16,17 +16,20 @@ def embedding_extraction(filename,embedding_length):
 
     for line in open(filename):
         full_vector = line.split(' ')
-        vector_float = list(map(float,full_vector[1:]))[:embedding_length]
+        vector_float = list(map(float, full_vector[1:]))[:embedding_length]
         embeddings.append(vector_float)
         token_to_row_number[full_vector[0]] = running_count
-        running_count+=1
+        running_count += 1
 
     token_to_row_number['UNK'] = running_count
 
     return embeddings, token_to_row_number
 
 
-def token_sequence_to_id_sequence(sequences,token_to_row_number,unknown_token,max_sequence_length=100):
+def token_sequence_to_id_sequence(sequences,
+                                  token_to_row_number,
+                                  unknown_token,
+                                  max_sequence_length=100):
     """
     PURPOSE: Convert sequences of token sequences to a sequence of seqeunces of
              corresponding id numbers in token_to_row_number dictionary.
@@ -45,7 +48,7 @@ def token_sequence_to_id_sequence(sequences,token_to_row_number,unknown_token,ma
     for sequence in sequences:
         id_sequence = []
         for token in sequence:
-            id_sequence.append(token_to_row_number.get(token,unknown_id))
+            id_sequence.append(token_to_row_number.get(token, unknown_id))
         if len(id_sequence) >= max_sequence_length:
             id_sequence = id_sequence[:max_sequence_length]
         else:

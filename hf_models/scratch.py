@@ -2,19 +2,25 @@ import torch
 from torch.utils.data import DataLoader
 import logging
 from pprint import pformat
-from transformers import BertTokenizer, BertModel, BertForMaskedLM
-from data.pytorch_dataset import QuoraCommentsDataset, QuoraBertDataSet, bert_tensor_colate
+from bert_model_runs import train_model
 
-logging.basicConfig(level=logging.INFO)
+train_model(train_config_json= 'bert_train_config_001.json',
+            valid_config_json= 'bert_valid_config_001.json',
+            n_epochs=5)
+
+# from transformers import BertTokenizer, BertModel, BertForMaskedLM
+# from data.pytorch_dataset import QuoraCommentsDataset, QuoraBertDataSet, bert_tensor_colate
+
+# logging.basicConfig(level=logging.INFO)
 
 # train_data = QuoraCommentsDataset('train_neg_50k.csv', 'train_pos_50k.csv', data_slice=[1, 100])
 
-train_data = QuoraBertDataSet('train_neg_50k.csv', 'train_pos_50k.csv', data_slice=[0, 5])
+# train_data = QuoraBertDataSet('train_neg_50k.csv', 'train_pos_50k.csv', data_slice=[0, ])
 
-train_dataloader = DataLoader(train_data, batch_size=3, collate_fn=bert_tensor_colate)
+# train_dataloader = DataLoader(train_data, batch_size=3, collate_fn=bert_tensor_colate)
 
-for batch in train_dataloader:
-    print(f"\n {pformat(batch)}")
+# for batch in train_dataloader:
+    # print(f"\n {pformat(batch)}")
 # tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 # text = "[CLS] who was Jim Henson? [SEP] Jim Henson was a puppeteer [SEP]"

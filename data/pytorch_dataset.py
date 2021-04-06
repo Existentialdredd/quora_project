@@ -1,87 +1,95 @@
 import torch
 import os
 from torch.utils.data import Dataset
-import random
-import numpy as np
 import csv
-from transformers import BertTokenizer, BertForSequenceClassification
+from data.schemas import QuoraDataConfig, QuoraObservation, QuoraObservationSet
 
 
 class QuoraCommentsDataset(Dataset):
     """
     Quora Comments Dataset
     """
+    def __init__(self, data_json: str = None, config_json: str = None):
+        if data_json is not None:
+            self.from_data_json(data_json)
+        elif config_json is not None:
+            self.from_config_json(config_json)
 
-    def __init__(self,
-                 pos_csv_file,
-                 neg_csv_file,
-                 root_dir='~/Desktop/resources/quora_project/data/',
-                 data_slice=[0, 100]):
+    def from_config_json(self, config_json_file: str, root_dir: str = None):
+        """
+        """
+        if root_dir is None:
+            root_dir = os.path.dirname(os.path.abspath(__file__))
+            DATA_DIR = os.path.join(root_dir, 'json_configs')
+        else:
+            DATA_DIR = root_dir
 
-        NEG_DATA_FILE = os.path.join(root_dir, pos_csv_file)
-        POS_DATA_FILE = os.path.join(root_dir, neg_csv_file)
+        DATA_FILE = os.path.join(DATA_DIR, config_json_file)
+        with open(DATA_FILE, 'r') as f:
+            text = ''.join([text for text in f])
+            data_config = QuoraDataConfig.from_json(text)
 
-        self.combined_data, self.combined_labels = [], []
+        NEG_DATA_FILE = os.path.join(data_config.root_dir, data_config.pos_csv_file)
+        POS_DATA_FILE = os.path.join(data_config.root_dir, data_config.neg_csv_file)
+
+        self.data = QuoraObservationSet(data_config.name, data_config.description)
         with open(NEG_DATA_FILE, newline='') as f:
             csv_reader = csv.reader(f, quotechar='|')
             for idx, row in enumerate(csv_reader):
-                if idx < data_slice[0]:
+                if idx < data_config.data_slice[0]:
                     pass
-                elif idx >= data_slice[1]:
+                elif idx >= data_config.data_slice[1]:
                     break
                 else:
-                    self.combined_data.append(row[0])
-                    self.combined_labels.append([float(1), float(0)])
+                    uid, input_raw, label = row
+                    if label == "0":
+                        label_flt = [float(1), float(0)]
+                    elif label == "1":
+                        label_flt = [float(0), float(1)]
+                    self.data.observations.append(QuoraObservation(uid, label_flt, input_raw))
 
         with open(POS_DATA_FILE, newline='') as f:
             csv_reader = csv.reader(f, quotechar='|')
             for idx, row in enumerate(csv_reader):
-                if idx < data_slice[0]:
+                if idx < data_config.data_slice[0]:
                     pass
-                elif idx > data_slice[1]:
+                elif idx > data_config.data_slice[1]:
                     break
                 else:
-                    self.combined_data.append(row[0])
-                    self.combined_labels.append([float(0), float(1)])
+                    uid, input_raw, label = row
+                    if label == "0":
+                        label_flt = [float(1), float(0)]
+                    elif label == "1":
+                        label_flt = [float(0), float(1)]
+                    self.data.observations.append(QuoraObservation(uid, label_flt, input_raw))
 
-        shuffle = list(range(len(self.combined_data)))
-        self.features = [self.combined_data[idx] for idx in shuffle]
-        self.labels = [self.combined_labels[idx] for idx in shuffle]
+    def from_data_json(self, data_json_file: str, root_dir: str = None):
+        """
+        PURPOSE: Load data from a json file.
+        """
+        if root_dir is None:
+            root_dir = os.path.dirname(os.path.abspath(__file__))
+            DATA_DIR = os.path.join(root_dir, 'json_data')
+        else:
+            DATA_DIR = root_dir
+
+        DATA_FILE = os.path.join(DATA_DIR, data_json_file)
+        with open(DATA_FILE, 'r') as f:
+            text = ''.join([text for text in f])
+            self.data = QuoraObservationSet.from_json(text)
 
     def __len__(self):
-        return len(self.features)
-
-
-class QuoraBertDataSet(QuoraCommentsDataset):
-
-    def __init__(self,
-                 pos_csv_file,
-                 neg_csv_file,
-                 root_dir='/Users/upenner/Desktop/resources/quora_project/data/',
-                 data_slice=[0, 100]):
-        super(QuoraBertDataSet, self).__init__(pos_csv_file, neg_csv_file, root_dir, data_slice)
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-        self.tokenized_features = self.tokenizer(self.features, padding=True, truncation=True, return_tensors='pt')
+        return len(self.data.observations)
 
     def __getitem__(self, idx):
         """
         """
         output = dict()
-        output['input_ids'] = self.tokenized_features['input_ids'][idx]
-        output['token_type_ids'] = self.tokenized_features['token_type_ids'][idx]
-        output['attention_mask'] = self.tokenized_features['attention_mask'][idx]
-        output['label'] = torch.tensor(self.labels[idx])
+        output['token_ids'] = self.data.observations[idx].token_ids
+        output['token_type_ids'] = self.data.observations[idx].token_types
+        output['attention_mask'] = self.data.observations[idx].attention_mask
+        output['label'] = torch.tensor(self.data.observations[idx].label)
 
         return output
-
-
-def bert_tensor_colate(output_dict_list):
-    output = dict()
-    output['input_ids'] = torch.stack([out['input_ids'] for out in output_dict_list])
-    output['token_type_ids'] = torch.stack([out['token_type_ids'] for out in output_dict_list])
-    output['attention_mask'] = torch.stack([out['attention_mask'] for out in output_dict_list])
-    output['label'] = torch.stack([out['label'] for out in output_dict_list])
-
-    return output
 
 

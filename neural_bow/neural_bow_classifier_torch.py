@@ -57,13 +57,12 @@ class NeuralBOW(nn.Module):
         self.fc2_activation = nn.ReLU()
         self.do2 = nn.Dropout(p=self.DROP_RATE)
 
-        self.fc3= nn.Linear(self.n_hidden[1], self.n_hidden[2])
+        self.fc3 = nn.Linear(self.n_hidden[1], self.n_hidden[2])
         self.bn3 = nn.BatchNorm1d(self.n_hidden[2])
         self.fc3_activation = nn.ReLU()
         self.do3 = nn.Dropout(p=self.DROP_RATE)
 
         self.fc3 = nn.Linear(self.n_hidden[2], self.N_OUTPUTS)
-
 
     def forward(self, inputs):
         embeds = self.embeddings(inputs).sum(dim=1)
