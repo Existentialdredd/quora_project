@@ -10,3 +10,5 @@ credentials.json
 *.swo
 train.csv
 quora_full_embeds.txt
+*.egg-info/
+*scratch.py
