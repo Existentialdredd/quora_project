@@ -58,16 +58,11 @@ class Neural_BOW(object):
         Y_                (tf.tensor) class labels
         training_         (tf.tensor) training indicator
         """
-        token_sequences_ = tf.placeholder(tf.int32,
-                                          shape=[None, self.MAX_SEQ_LEN],
-                                          name='TokenSequences')
-        embedding_mat_ = tf.placeholder(tf.float32,
-                                        shape=[self.N_TOKN + 1, self.EMBD_DIM],
-                                        name='W_embed')
+        token_sequences_ = tf.placeholder(tf.int32, shape=[None, self.MAX_SEQ_LEN], name='TokenSequences')
+        embedding_mat_ = tf.placeholder(tf.float32, shape=[self.N_TOKN + 1, self.EMBD_DIM], name='W_embed')
         Y_ = tf.placeholder(tf.int64, shape=[None], name='Y')
-        training_ = tf.placeholder_with_default(False,
-                                                shape=(),
-                                                name='training')
+        training_ = tf.placeholder_with_default(False, shape=(), name='training')
+
         return token_sequences_, embedding_mat_, Y_, training_
 
     def _embedding_lookup_layer_(self,
@@ -255,7 +250,6 @@ class Neural_BOW(object):
                 xentropy_, loss_ = self._loss_function_(logits_, Y_)
             for op in (xentropy_, loss_):
                 tf.add_to_collection("Loss_ops", op)
-
             with tf.name_scope("Optimizer"):
                 optimizer_, training_op_ = self._optimizer_(loss_)
             for op in (optimizer_, training_op_):
@@ -356,23 +350,11 @@ class Neural_BOW(object):
                 epoch += 1
                 batches = self._partition_(list(range(n_train_ex)), n_batches)
                 # Mini-Batch Training step
-                for iteration in ProgressBar(
-                        range(n_batches), 'Epoch {} Iterations'.format(epoch)):
-                    token_sequences_batch = [
-                        token_sequences_train[indx]
-                        for indx in batches[iteration]
-                    ]
-                    labels_batch = [
-                        labels_train[indx] for indx in batches[iteration]
-                    ]
-                    sess.run(
-                        [training_op_],
-                        feed_dict={
-                            training_: True,
-                            embedding_mat_: embeddings,
-                            token_sequences_: token_sequences_batch,
-                            Y_: labels_batch
-                        })
+                for iteration in ProgressBar(range(n_batches), 'Epoch {} Iterations'.format(epoch)):
+                    token_sequences_batch = [ token_sequences_train[indx] for indx in batches[iteration] ]
+                    labels_batch = [ labels_train[indx] for indx in batches[iteration] ]
+                    sess.run( [training_op_], feed_dict={training_: True, embedding_mat_: embeddings,
+                                                         token_sequences_: token_sequences_batch, Y_: labels_batch })
                     # Intermediate Summary Writing
                     if iteration % 10 == 0:
                         summary_str = acc_summary.eval(
