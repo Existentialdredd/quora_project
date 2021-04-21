@@ -101,9 +101,8 @@ class QuoraObservationSet:
         DATA_FILE = os.path.join(DATA_DIR, data_json_file)
         with open(DATA_FILE, 'r') as f:
             text = ''.join([text for text in f])
-            data_set = cls.from_json(text)
 
-        return cls(data_set)
+        return cls.from_json(text)
 
     def feature_dict_generator(self):
         """
