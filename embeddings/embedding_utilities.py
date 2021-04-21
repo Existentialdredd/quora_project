@@ -1,7 +1,8 @@
-from collections import defaultdict
 from dataclasses_json import dataclass_json
+from tqdm import tqdm as ProgressBar
 from dataclasses import dataclass
 from data.schemas import QuoraObservationSet
+import numpy as np
 import os
 
 
@@ -18,17 +19,23 @@ class EmbeddingConfig:
 class ParagramEmbeddings():
 
     UNKNOWN = '[UNK]'
-    UNKNOWN_ID = 2
+    UNKNOWN_TYPE_ID = 2
     PAD = '[PAD]'
-    PAD_ID = 3
+    PAD_TYPE_ID = 3
 
     def __init__(self, config: EmbeddingConfig = None):
         """
         """
         self.config = config
         self.token_ids = dict()
-        self.embedding_tensor = []
+        self.embedding_list = []
         self.embedding_extraction()
+
+    @property
+    def embedding_tensor(self):
+        """
+        """
+        return tf.convert_to_tensor(self.embedding_list, dtype=np.float32)
 
     def embedding_extraction(self):
         """
@@ -41,7 +48,6 @@ class ParagramEmbeddings():
         embeddings              (list(list(int))) embedding vectors
         token_to_row_number     (dict) of token id number key value pairs
         """
-        embeddings = []
         running_count = 0
 
         if self.config.root_dir is None:
@@ -54,13 +60,16 @@ class ParagramEmbeddings():
             for line in file:
                 token, *vector = line.split(' ')
                 vector_float = list(map(float, vector))[:self.config.hidden_dimension]
-                self.embedding_tensor.append(vector_float)
+                self.embedding_list.append(vector_float)
                 self.token_ids[token.lower()] = running_count
                 running_count += 1
 
-        self.token_ids[self.UNKNOWN] = running_count
-        self.token_ids[self.PAD] = running_count + 1
-        self.embedding_tensor.append([float(0) for i in range(self.config.hidden_dimension)])
+        self.UNKNOWN_TOKEN_ID = running_count
+        self.token_ids[self.UNKNOWN] = self.UNKNOWN_TOKEN_ID
+        self.embedding_list.append([float(0) for i in range(self.config.hidden_dimension)])
+        self.PAD_TOKEN_ID = running_count + 1
+        self.token_ids[self.PAD] = self.PAD_TOKEN_ID
+        self.embedding_list.append([float(0) for i in range(self.config.hidden_dimension)])
 
     def get_embedding_ids(self, observation_set: QuoraObservationSet = None):
         """
@@ -75,15 +84,17 @@ class ParagramEmbeddings():
         RETURNS:
         id_sequences            (list(list(int)) list of list of id numbers
         """
-        for observation in observation_set.observations:
+        for observation in ProgressBar(observation_set.observations, "Tokenizing Inputs"):
             for token in observation.tokenized_input[:self.config.max_sequence_length]:
-                observation.token_ids.append(self.token_ids.get(token, self.UNKNOWN))
-                observation.token_types.append(self.UNKNOWN_ID if observation.token_ids[-1] is self.UNKNOWN else 1)
+                observation.token_ids.append(self.token_ids.get(token, self.UNKNOWN_TOKEN_ID))
+                observation.token_types.append(self.UNKNOWN_TYPE_ID
+                                               if observation.token_ids[-1] is self.UNKNOWN_TOKEN_ID else 1)
                 observation.attention_mask.append(1)
 
             if self.config.pad_to_length:
-                observation.token_ids += [self.token_ids.get(self.PAD, -1)]*(self.config.max_sequence_length - len(observation.token_ids))
-                observation.token_types += [self.PAD_ID]*(self.config.max_sequence_length - len(observation.token_types))
-                observation.attention_mask += [0]*(self.config.max_sequence_length - len(observation.attention_mask))
+                pad_length = self.config.max_sequence_length - len(observation.token_ids)
+                observation.token_ids += [self.token_ids.get(self.PAD, -1)]*(pad_length)
+                observation.token_types += [self.PAD_TYPE_ID]*(pad_length)
+                observation.attention_mask += [0]*(pad_length)
 
         return observation_set
