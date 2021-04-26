@@ -1,5 +1,6 @@
 import os
 import csv
+from tqdm import tqdm as ProgressBar
 from typing import List, Optional
 from dataclasses_json import dataclass_json, config
 from dataclasses import dataclass, field
@@ -36,7 +37,7 @@ class QuoraObservation:
             "token_ids": self.token_ids,
             "token_types": self.token_types,
             "attention_mask": self.attention_mask,
-            "label": self.label
+            "label": int(self.label)
         }
 
 
@@ -57,7 +58,7 @@ class QuoraObservationSet:
             observations = []
             with open(data_path, newline='') as f:
                 csv_reader = csv.reader(f, quotechar='|')
-                for idx, row in enumerate(csv_reader):
+                for idx, row in ProgressBar(enumerate(csv_reader), "Lines Read"):
                     if idx > data_config.data_slice[0] and idx <= data_config.data_slice[1]:
                         uid, input_raw, label = row
                         if str(label) == "0":
