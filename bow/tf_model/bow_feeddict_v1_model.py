@@ -1,12 +1,12 @@
-from __future__ import print_function
-from __future__ import division
+from __future__ import print_function, division
+from sklearn.metrics import confusion_matrix, classification_report
 from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 from tqdm import tqdm as ProgressBar
 from typing import List
 from data.tf_dataset import QuoraTFDataset
+import json
 import datetime as dt
-import random
 import os
 import numpy as np
 import tensorflow.compat.v1 as tf
@@ -15,7 +15,7 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 
 @dataclass_json
 @dataclass
-class BOWConfig:
+class BOWModelConfig:
     """
     PURPOSE:
 
@@ -41,9 +41,7 @@ class BOWConfig:
     drop_rate: float = 0.5
     num_tokens: int = 100
     num_outputs: int = 2
-    root_log_dir: str = os.path.dirname(os.path.abspath(__file__)) + '/logs'
-    check_pt_dir: str = os.path.dirname(os.path.abspath(__file__)) + '/ckpts'
-    summary_dir: str = os.path.dirname(os.path.abspath(__file__)) + '/summary'
+    rootdir: str = os.path.dirname(os.path.abspath(__file__)) + '/runs'
 
     @classmethod
     def from_json(cls, filename: str, root_dir: str = None):
@@ -83,8 +81,10 @@ class BOWModel(object):
     ARGS:
     :config: model configuration
     """
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, model_config: BOWModelConfig, dataset: QuoraTFDataset, embedding_list: List[List[float]]):
+        self.dataset = dataset
+        self.embedding_tensor = embedding_list
+        self.model_config = model_config
         self.graph = None
 
     def _placeholders_(self):
@@ -98,11 +98,11 @@ class BOWModel(object):
         training_         (tf.tensor) training indicator
         """
         token_ids_ = tf.placeholder(tf.int32,
-                                    shape=[None, self.config.max_sequence_length],
+                                    shape=[None, self.model_config.max_sequence_length],
                                     name='TokenIDs')
         embedding_mat_ = tf.placeholder(tf.float32,
-                                        shape=[self.config.num_tokens, self.config.embedding_dimension],
-                                        name='W_embed')
+                                        shape=[len(self.embedding_tensor), len(self.embedding_tensor[0])],
+                                        name='Embeddings')
         labels_ = tf.placeholder(tf.int64, shape=[None], name='Labels')
         training_ = tf.placeholder_with_default(False, shape=(), name='training')
 
@@ -147,11 +147,11 @@ class BOWModel(object):
         RETURNS:
         activation_ (tf.tensor) layer with activation function applied
         """
-        if self.config.hidden_activation == 'elu':
+        if self.model_config.hidden_activation == 'elu':
             activation_ = tf.nn.elu(layer, name=layer_name)
-        if self.config.hidden_activation == 'relu':
+        if self.model_config.hidden_activation == 'relu':
             activation_ = tf.nn.relu(layer, name=layer_name)
-        if self.config.hidden_activation == 'leaky_relu':
+        if self.model_config.hidden_activation == 'leaky_relu':
             activation_ = tf.nn.leaky_relu(layer, name=layer_name)
         return activation_
 
@@ -168,9 +168,9 @@ class BOWModel(object):
         """
         he_init_ = tf.initializers.he_uniform()
         h_ = embedding_sum_
-        for i, dim in enumerate(self.config.n_hidden):
+        for i, dim in enumerate(self.model_config.n_hidden):
             with tf.variable_scope(("HiddenLayer_%d" % i)):
-                if self.config.batch_normalization:
+                if self.model_config.batch_normalization:
                     h_ = tf.layers.dense(h_,
                                          dim,
                                          kernel_initializer=he_init_,
@@ -183,12 +183,12 @@ class BOWModel(object):
                 else:
                     h_ = tf.layers.dense(h_,
                                          dim,
-                                         activation=self.config.hidden_activation,
+                                         activation=self.model_config.hidden_activation,
                                          kernel_initializer=he_init_,
                                          name=("Hidden_%d" % i))
-                if self.config.drop_rate > 0:
+                if self.model_config.drop_rate > 0:
                     h_ = tf.layers.dropout(h_,
-                                           rate=self.config.drop_rate,
+                                           rate=self.model_config.drop_rate,
                                            training=training_)
         return h_
 
@@ -202,7 +202,7 @@ class BOWModel(object):
         RETURNS:
         logits_ (tf.tensor) logits output layer
         """
-        logits_ = tf.layers.dense(h_, self.config.num_outputs, name='Logits_lyr')
+        logits_ = tf.layers.dense(h_, self.model_config.num_outputs, name='Logits_lyr')
         return logits_
 
     def _loss_function_(self, logits_, labels_):
@@ -234,7 +234,7 @@ class BOWModel(object):
         optimizer_      (tf.tensor) optimizer
         training_op_    (tf.tensor) training method
         """
-        optimizer_ = tf.train.AdagradOptimizer(learning_rate=self.config.learning_rate)
+        optimizer_ = tf.train.AdagradOptimizer(learning_rate=self.model_config.learning_rate)
         training_op_ = optimizer_.minimize(loss_)
         return optimizer_, training_op_
 
@@ -317,18 +317,15 @@ class BOWModel(object):
         now_time = dt.datetime.now().second
         file_ext = ''.join([
             'FF', '_',
-            str(self.config.embedding_dimension), '_',
-            str(len(self.config.n_hidden)), 'x',
-            str(self.config.n_hidden[0]), '-t',
+            str(self.model_config.embedding_dimension), '_',
+            str(len(self.model_config.n_hidden)), 'x',
+            str(self.model_config.n_hidden[0]), '-t',
             str(now_time)
         ])
-        self.log_dir = ''.join([self.config.root_log_dir, '/run-', file_ext, '/'])
-        self.temp_ckpt = ''.join(
-            [self.config.check_pt_dir, '/run-', file_ext, '/', 'temp.ckpt'])
-        self.final_ckpt = ''.join(
-            [self.config.check_pt_dir, '/run-', file_ext, '/', 'final.ckpt'])
-        self.summary_file = ''.join(
-            [self.config.summary_dir, '/run-', file_ext, '.txt'])
+        self.log_dir = ''.join([self.model_config.rootdir, '/run-', file_ext, '/'])
+        self.temp_ckpt = ''.join([self.model_config.rootdir, '/run-', file_ext, '/', 'temp.ckpt'])
+        self.final_ckpt = ''.join([self.model_config.rootdir, '/run-', file_ext, '/', 'final.ckpt'])
+        self.summary_file = ''.join([self.model_config.rootdir, '/run-', file_ext, '.txt'])
 
     def write_graph(self):
         """
@@ -343,14 +340,7 @@ class BOWModel(object):
         else:
             print('No Current Graph')
 
-    def _partition_(self, list_in, n):
-        """
-        PURPOSE: Generate indexs for minibatchs used in minibatch gradient descent
-        """
-        random.shuffle(list_in)
-        return [list_in[i::n] for i in range(n)]
-
-    def train_graph(self, dataset: QuoraTFDataset, n_stop: int = 2):
+    def train(self, dataset: QuoraTFDataset = None, n_stop: int = 2):
         """
         PURPOSE: Train a deep neural net classifier for baskets of products
 
@@ -364,15 +354,18 @@ class BOWModel(object):
             batch_size             (int) number of training example per mini batch
             n_stop                 (int) early stopping criteria
         """
-        embeddings = dataset.embedding_tensor
+        embeddings = self.embedding_tensor
+        if dataset is None:
+            dataset = self.dataset
+
         train_data, valid_data = dataset.get_list_datasets()
         train_data = list(train_data)
-        # train_data_full = list(train_data.make_one_shot_iterator())
-        # valid_data = valid_data.make_one_shot_iterator().next()
         done, epoch, acc_reg = 0, 0, [0, 1]
 
         with self.graph.as_default():
             correct_, accuracy_ = tf.get_collection('Eval_ops')
+            _, loss_ = tf.get_collection("Loss_ops")
+            loss_summary = tf.summary.scalar('Loss', loss_)
             acc_summary = tf.summary.scalar('Accuracy', accuracy_)
             file_writer = tf.summary.FileWriter(self.log_dir, self.graph)
 
@@ -395,7 +388,7 @@ class BOWModel(object):
                     # Intermediate Summary Writing
                     if iteration % 10 == 0:
                         summary_str = acc_summary.eval(
-                            feed_dict={training_: True, embedding_mat_: embeddings,
+                            feed_dict={training_: False, embedding_mat_: embeddings,
                                        token_ids_: valid_data['token_ids'], labels_: valid_data['label']})
                         step = epoch * dataset.batch_size + iteration
                         file_writer.add_summary(summary_str, step)
@@ -407,7 +400,7 @@ class BOWModel(object):
                                    token_ids_: valid_data['token_ids'], labels_: valid_data['label']})
                     if acc_ckpt > acc_reg[0]:
                         # Saving the new "best" model
-                        save_path = saver_.save(sess, self.temp_ckpt)
+                        saver_.save(sess, self.temp_ckpt)
                         acc_reg = [acc_ckpt, 1]
                     elif acc_ckpt <= acc_reg[0] and acc_reg[1] < n_stop:
                         acc_reg[1] += 1
@@ -425,54 +418,45 @@ class BOWModel(object):
                 print(f"Register:{acc_reg} Epoch:{epoch} Train Accuracy:{acc_train} Validation Accuracy: {acc_test}")
 
             # Final Model Save
-            save_path = saver_.save(sess, self.final_ckpt)
+            saver_.save(sess, self.final_ckpt)
 
-    def predict_and_report(self,
-                           sequences,
-                           labels,
-                           W_embed,
-                           report=True,
-                           file=False):
+    def evaluate(self, dataset: QuoraTFDataset = None, report: bool = True, file: bool = False, checkpoint: str = None):
         """
         PURPOSE: Prediction using best model on provided examples and generating
                  report if indicated and labels are provided.
 
         ARGS:
-        sequences      (list(list)) order of product numbers
-        labels      (list) order class labels
-        W_embed     (list(list)) trained word embedding Matrix
         report      (bool) indicator for whether a report is generated
         file        (bool) indicator whether a summary file is generated
         """
-        from sklearn.metrics import confusion_matrix, classification_report
-        import json
+        if dataset is None:
+            dataset = self.dataset
+
+        embeddings = self.embedding_tensor
+        train_data, valid_data = dataset.get_list_datasets()
 
         with tf.Session(graph=self.graph) as sess:
             _, saver_ = tf.get_collection('Init_Save_ops')
-            saver_.restore(sess, self.final_ckpt)
-            logits_ = self.graph.get_tensor_by_name(
-                'OutputLyr/Logits_lyr/BiasAdd:0')
-            token_ids_, embedding_mat_, labels_, training_ = tf.get_collection(
-                "Input_var")
+            if checkpoint is None:
+                checkpoint = self.final_ckpt
+            saver_.restore(sess, checkpoint)
+
+            logits_ = self.graph.get_tensor_by_name('OutputLyr/Logits_lyr/BiasAdd:0')
+            token_ids_, embedding_mat_, labels_, training_ = tf.get_collection("Input_var")
             self.logits_prediction = logits_.eval(
-                feed_dict={
-                    embedding_mat_: W_embed,
-                    token_ids_: sequences,
-                    training_: False
-                })
+                feed_dict={embedding_mat_: embeddings, token_ids_: valid_data['token_ids'], training_: False}
+            )
             self.class_prediction = np.argmax(self.logits_prediction, axis=1)
 
             if report:
-                confusion_mat = confusion_matrix(labels, self.class_prediction)
-                print('-----------{}-----------'.format('Confusion Matrix'))
-                print(confusion_mat, '\n')
-                print(
-                    '-----------{}-----------'.format('Classification Report'))
-                print(classification_report(labels, self.class_prediction))
+                confusion_mat = confusion_matrix(valid_data['label'], self.class_prediction)
+                print("-----------Confusion Matrix-----------"
+                      f"\n{confusion_mat}\n"
+                      f"-----------Classification Report-----------"
+                      f"\n{classification_report(valid_data['label'], self.class_prediction)} \n")
             if file:
                 summary_dict = self.__dict__.copy()
-                class_report_dict = classification_report(
-                    labels, self.class_prediction, output_dict=True)
+                class_report_dict = classification_report(valid_data['label'], self.class_prediction, output_dict=True)
                 summary_dict.update(class_report_dict)
                 summary_dict.pop('graph', None)
                 summary_dict.pop('logits_prediction', None)
