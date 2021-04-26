@@ -31,11 +31,6 @@ class ParagramEmbeddings():
         self.embedding_list = []
         self.embedding_extraction()
 
-    @property
-    def embedding_tensor(self):
-        """
-        """
-        return tf.convert_to_tensor(self.embedding_list, dtype=np.float32)
 
     def embedding_extraction(self):
         """

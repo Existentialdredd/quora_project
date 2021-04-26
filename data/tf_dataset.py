@@ -8,13 +8,11 @@ from data.schemas import QuoraObservationSet
 class QuoraTFDataset():
 
     def __init__(self, data_set: QuoraObservationSet,
-                 embedding_list: List[List[float]],
                  batch_size: int = 10,
                  valid_split: float = 0.1):
 
         self.data = data_set
         self.batch_size = batch_size
-        self.embedding_list = embedding_list
         self.valid_split = valid_split
         self.train_valid_split()
 
@@ -68,6 +66,6 @@ class QuoraTFDataset():
                 }
 
         valid_ds = {'token_ids': [obs.token_ids for obs in self.train_data.observations],
-                    'label': [obs.label for obs in self.train_data.observations]}
+                    'label': [int(obs.label) for obs in self.train_data.observations]}
 
         return train_ds(), valid_ds
