@@ -2,7 +2,7 @@ from __future__ import print_function
 from __future__ import division
 from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
-from typing import List
+from typing import List, Dict
 from data.tf_dataset import QuoraTFDataset
 from embeddings.embedding_utilities import EmbeddingConfig
 import os
@@ -30,15 +30,11 @@ class BOWModelConfig:
     :root_log_dir: directory where tf logs will be kept
     :checkpoint_dir: directory where checkpoints are kept
     """
-    max_sequence_length: int = 100
-    num_tokens: int = 100
-    embedding_dimension: int = 100
     n_hidden: List[int] = field(default_factory=list)
     hidden_activation: str = 'elu'
     batch_normalization: bool = True
     drop_rate: float = 0.5
     num_outputs: int = 2
-    model_dir: str = os.path.dirname(os.path.abspath(__file__)) + '/models'
 
     @classmethod
     def from_json(cls, filename: str, root_dir: str = None):
@@ -80,17 +76,11 @@ class BOWModel(object):
     """
     def __init__(self,
                  model_config: BOWModelConfig,
-                 run_config: tf.estimator.RunConfig,
                  embedding_matrix: List[List[int]],
-                 embedding_config: EmbeddingConfig,
-                 learning_rate: float = 0.01):
+                 embedding_config: EmbeddingConfig):
         self.model_config = model_config
-        self.run_config = run_config
         self.embedding_config = embedding_config
         self.embedding_matrix = embedding_matrix
-        self.params = {'learning_rate': learning_rate}
-        self.model_fn = self.model_function_builder()
-        self.generate_estimator()
 
     def _embedding_lookup_layer_(self, embedding_matrix, token_ids_, reduce='sum'):
         """
@@ -257,14 +247,19 @@ class BOWModel(object):
                 xentropy, loss = self._loss_function_(logits, labels['labels'])
 
                 with tf.variable_scope("EvalMetrics"):
-                    accuracy = tf.metrics.accuracy(labels['labels'], predictions)
-                    tf.summary.scalar('Accuracy', accuracy[0])
-                    recall = tf.metrics.recall(labels['labels'], predictions)
-                    tf.summary.scalar('Recall', recall[0])
-                    precision = tf.metrics.precision(labels['labels'], predictions)
-                    tf.summary.scalar('Precision', precision[0])
+                    accuracy_val, acc_op = tf.metrics.accuracy(labels['labels'], predictions)
 
-                eval_ops = {"recall": recall, "accuracy": accuracy, "precision": precision}
+                    tf.summary.scalar('Accuracy', accuracy_val)
+                    recall_val, rec_op = tf.metrics.recall(labels['labels'], predictions)
+                    tf.summary.scalar('Recall', recall_val)
+                    precision_val, pre_op = tf.metrics.precision(labels['labels'], predictions)
+                    tf.summary.scalar('Precision', precision_val)
+
+                eval_ops = {
+                    "recall": (recall_val, rec_op),
+                    "accuracy": (accuracy_val, acc_op),
+                    "precision": (precision_val, pre_op)
+                }
             else:
                 loss, eval_ops = None, None
 
@@ -278,8 +273,27 @@ class BOWModel(object):
 
         return model_fn
 
-    def input_fn_builder(self, dataset: QuoraTFDataset, mode=tf.estimator.ModeKeys.TRAIN, num_epochs: int = 1):
+
+class BOWModelRunner():
+
+    def __init__(self, dataset: QuoraTFDataset,
+                 run_config: tf.estimator.RunConfig,
+                 model: BOWModel,
+                 params: Dict[str, int]):
+        self.dataset = dataset
+        self.model = model
+        self.run_config = run_config
+        self.model_config = model.model_config
+        self.params = params
+        self.model_fn = model.model_function_builder()
+        self.generate_estimator()
+
+    def input_fn_builder(self,
+                         dataset: QuoraTFDataset,
+                         mode=tf.estimator.ModeKeys.TRAIN,
+                         params: Dict[str, int] = None):
         """
+        PURPOSE:
         """
         if mode == tf.estimator.ModeKeys.TRAIN:
             data = dataset.train_data.feature_dict_generator
@@ -299,7 +313,7 @@ class BOWModel(object):
                     "attention_mask": tf.int64,
                     "label": tf.int64
                 }).batch(batch_size)
-            dataset.repeat(num_epochs)
+            dataset.repeat(params['num_epochs'])
 
             iterator = dataset.make_one_shot_iterator()
             feature_dict = iterator.get_next()
@@ -309,16 +323,17 @@ class BOWModel(object):
 
     def generate_estimator(self):
         """
+        PURPOSE:
         """
         self.estimator = tf.estimator.Estimator(
-            model_fn=self.model_fn, model_dir=self.model_config.model_dir,
-            config=self.run_config, params=self.params)
+            model_fn=self.model_fn, config=self.run_config, params=self.params)
 
-    def train_model(self, dataset: QuoraTFDataset, num_epochs):
+    def train_model(self):
         """
+        PURPOSE:
         """
-        input_fn = self.input_fn_builder(dataset, mode=tf.estimator.ModeKeys.TRAIN, num_epochs=1)
-        self.estimator.train(input_fn)
-        input_fn = self.input_fn_builder(dataset, mode=tf.estimator.ModeKeys.EVAL, num_epochs=1)
-        self.estimator.evaluate(input_fn)
-
+        for ind in range(10):
+            input_fn = self.input_fn_builder(self.dataset, mode=tf.estimator.ModeKeys.TRAIN, params=self.params)
+            self.estimator.train(input_fn)
+            input_fn = self.input_fn_builder(self.dataset, mode=tf.estimator.ModeKeys.EVAL, params=self.params)
+            self.estimator.evaluate(input_fn)
